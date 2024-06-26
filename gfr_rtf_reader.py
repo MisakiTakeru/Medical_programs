@@ -27,8 +27,7 @@ def get_data(lines):
 
 if __name__ == '__main__':
 	filename = askopenfilename()
-	text = read_report(filename) 
-)
+	text = read_report(filename)
 
 	get_data(text)
 
