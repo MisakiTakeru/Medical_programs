@@ -1,15 +1,8 @@
 import pydicom as pyd
 import pprint
+from tkinter.filedialog import askopenfilename
 
-
-def read_dcm():
-#    paths = '/run/user/1000/gvfs/smb-share:server=rghheapac001.regionh.top.local,share=data/TEMP/GFR_test/DICOM/000010B0/AA5E46BF/AA3453A6/00007800/EE7C9DEF' 
-#    paths = '/run/user/1000/gvfs/smb-share:server=rghheapac001.regionh.top.local,share=data/TEMP/GFR_test/DICOM/000010B0/AA55D4DE/AAD50535/0000EAEA/EEF30F12' 
-    paths = '/run/user/1000/gvfs/smb-share:server=rghheapac001.regionh.top.local,share=data/TEMP/GFR_test/DICOM/000010B0/AA6051AB/AA0BEF99/0000CE00/EECD8F0A' 
-#    paths = '/run/user/1000/gvfs/smb-share:server=rghheapac001.regionh.top.local,share=data/TEMP/GFR_test/DICOM/000010B0/AA453894/AADED158/0000449E/EE9C1A05' 
-
-
-
+def read_dcm(paths):
     dataset = pyd.dcmread(paths)
     return dataset
 
@@ -99,8 +92,9 @@ def get_gfrdata(dataset):
     return dict(tuples)
 
 if __name__ == '__main__':
-
-    dataset = read_dcm()
+    paths = askopenfilename()
+    
+    dataset = read_dcm(paths)
 
 
     data = get_gfrdata(dataset)
