@@ -1,5 +1,5 @@
 import re
-
+from tkinter.filedialog import askopenfilename
 
 # the regex to find the lines we want from the report
 prog = re.compile(r'[\d-]+\s+[a-zA-Z():\/]*\s\d+\s+[a-zA-Z():\/\s.0-9 -]*')
@@ -26,7 +26,8 @@ def get_data(lines):
 
 
 if __name__ == '__main__':
-	text = read_report('/run/user/1000/gvfs/smb-share:server=rghheapac001.regionh.top.local,share=data/TEMP/GFR_test/pdftest/REPORTS/0000B695/AA1358F5/AA96E1D7.RTF' 
+	filename = askopenfilename()
+	text = read_report(filename) 
 )
 
 	get_data(text)
