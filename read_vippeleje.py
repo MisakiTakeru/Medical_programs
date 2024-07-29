@@ -411,7 +411,11 @@ if __name__ == '__main__':
         time_marks = time_marks.rename('Markers')
         res_with_marks = pd.concat([res_with_labels, time_marks], axis = 1)
         print(res_with_marks)
-        res_with_marks.to_csv('test.csv', mode='a', index=False)
+        
+        if os.path.isfile('/home/jlar0426/Documents/csv/test.csv'):
+            res_with_marks.to_csv('/home/jlar0426/Documents/csv/test.csv', mode='a', index=False, header=False)
+        else:
+            res_with_marks.to_csv('/home/jlar0426/Documents/csv/test.csv', mode='a', index=False)
         plt.close()
         return 
 

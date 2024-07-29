@@ -4,12 +4,14 @@ import gfr_read as gr
 import gfr_rtf_reader as grr
 import glob
 import functools
+import pandas as pd
+import os
 
 def gfr():
     """
     Goes through a DICOMDIR and checks the year, if the year is before 2020
-    and we find a PDF it means we have an older version of data storage.
-    if it is 2020 or later it means we have the newer version and looks for
+    means we have an older version of data storage.
+    If it is 2020 or later it means we have the newer version and looks for
     Image storage to get the data from a examination.
     """
     dataset, path = gr.read_dcm()
@@ -23,9 +25,12 @@ def gfr():
 
 # A single dicom examination is split into multiple series, and each series 
 # use a lot of the same hexadecimal values.
-    for series in dataset[0x00041220]:
-        if (0x0008002a) in series:
-            year = int(series[0x0008002a].value[:4])
+    for i,series in enumerate(dataset[0x00041220]):
+        if i == 0:
+            pid = series[0x00100020].value
+        if (0x00080020) in series:
+            year = int(series[0x00080020].value[:4])
+            date = series[0x00080020].value
         if 'year' in locals():
             if (0x00041510) in series:                
                 if year >= 2020:
@@ -36,7 +41,15 @@ def gfr():
                         total_path = dirloc + p
                         f, _ = gr.read_dcm(total_path)
                         print('after 2020')
-                        d = gr.get_gfrdata(f)
+                        data = gr.get_gfrdata(f)
+                        data['date'] = date
+                        data['PID'] = pid
+                        panda_d = pd.DataFrame([data])
+                        if os.path.isfile('/home/jlar0426/Documents/csv/t.csv'):
+                            panda_d.to_csv('/home/jlar0426/Documents/csv/t.csv', mode='a', index=False, header=False)
+                        else:
+                            panda_d.to_csv('/home/jlar0426/Documents/csv/t.csv', mode='a', index=False)
+
                 elif year < 2020:
                     p0 = series[0x00041500][:3]
                     p = functools.reduce(lambda a, b : a.replace('DICOM',
@@ -45,4 +58,5 @@ def gfr():
                     report_path = glob.glob(total_path +'/*')[0]
                     report = grr.read_report(report_path)
                     print('before 2020')
-                    grr.get_data(report)
+                    data = grr.get_data(report)
+    

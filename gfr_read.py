@@ -25,7 +25,11 @@ GFR_keys = [('GFR',0x00231001), ('GFR Version',0x00231002),('GFR Method',0x00231
     ('Vial number',0x00231019),('Injection weight',0x0023101A),('Vial weight before injection',0x0023101B),
     ('Vial weight after injection',0x0023101C),('Clearance Tests',0x00231020),
     ('Standard Counts Per',0x00231024),('Thining Factor',0x00231028),
-    ('Examination Status',0x00231032),('Clearance History',0x0023103F), ('Clearance Comment',0x00231040)]
+    ('Examination Status',0x00231032),('Clearance Comment',0x00231040)]
+
+# Removed Clearance History from GFR_keys as it gives value of the prior examination
+# and not the one looked at.
+# ('Clearance History',0x0023103F), 
 
 # names and keys used by 0x00231020
 key_1020 = [('Sample Time',0x00231021),('Count Per Minuts',0x00231022),
@@ -65,26 +69,26 @@ def get_gfrdata(dataset):
                         print(name1 +' is not in ' + name)
                 tuples.append((name, dict(tupkey1)))
 
-            elif key == 0x0023103f:
-                data = data[0]
-                tupkey1 = []
-                for (name1, key1) in key_103f:
-                    if key1 in data:
-                        data1 = data[key1].value
-                        if key1 == 0x00231020:
-                            tupkey2 = []
-                            data1 = data1[0]
-                            for (name2, key2) in key_1020:
-                                if key2 in data1:
-                                    tupkey2.append((name2, data1[key2].value))
-                                else:
-                                    print(name2 +' is not in ' + name1)
-                            tupkey1.append((name1, dict(tupkey2)))
-                        else:
-                            tupkey1.append((name1, data1))
-                    else:
-                        print(name1 + ' is not in ' + name)
-                tuples.append((name, dict(tupkey1)))
+#            elif key == 0x0023103f:
+#                data = data[0]
+#                tupkey1 = []
+#                for (name1, key1) in key_103f:
+#                    if key1 in data:
+#                        data1 = data[key1].value
+#                        if key1 == 0x00231020:
+#                            tupkey2 = []
+#                            data1 = data1[0]
+#                            for (name2, key2) in key_1020:
+#                                if key2 in data1:
+#                                    tupkey2.append((name2, data1[key2].value))
+#                                else:
+#                                    print(name2 +' is not in ' + name1)
+#                            tupkey1.append((name1, dict(tupkey2)))
+#                        else:
+#                            tupkey1.append((name1, data1))
+#                    else:
+#                        print(name1 + ' is not in ' + name)
+ #               tuples.append((name, dict(tupkey1)))
             else:
                 tuples.append((name, data))
         else:
