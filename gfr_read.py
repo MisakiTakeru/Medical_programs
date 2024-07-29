@@ -2,9 +2,13 @@ import pydicom as pyd
 import pprint
 from tkinter.filedialog import askopenfilename
 
-def read_dcm(paths):
+def read_dcm(path = None):
+    if path == None:
+        paths = askopenfilename()
+    else:
+        paths = path
     dataset = pyd.dcmread(paths)
-    return dataset
+    return dataset, paths
 
 # Keys 0x00231002 (GFR version) and 0x00231040 (Clearance Comment) failed
 # Keys 0x00231021 (Sample Time), x00231022 (Count Per Minuts) and 0x00231023 (Deviation on Sample)
@@ -92,9 +96,9 @@ def get_gfrdata(dataset):
     return dict(tuples)
 
 if __name__ == '__main__':
-    paths = askopenfilename()
     
-    dataset = read_dcm(paths)
+    
+    dataset, _ = read_dcm()
 
 
     data = get_gfrdata(dataset)
