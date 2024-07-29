@@ -41,6 +41,7 @@ def get_data(lines):
                 split_line[2] = re.findall(r'\d{2,3}(?=\s\(\d+\s-\s\d+\))', split_line[2])[0]
             else:
                 split_line[2] = find_1[0]
+            split_line[0] = split_line[0].replace('-','')
 #            split_line[2] = re.findall(r'\d+\s\([\d\s-]+\)', split_line[2])[0]
             print(dict(zip(units,split_line)))
             res = dict(zip(units,split_line))

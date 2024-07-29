@@ -42,7 +42,7 @@ def gfr():
                         f, _ = gr.read_dcm(total_path)
                         print('after 2020')
                         data = gr.get_gfrdata(f)
-                        data['date'] = date
+                        data['Date'] = date
                         data['PID'] = pid
                         panda_d = pd.DataFrame([data])
                         if os.path.isfile('/home/jlar0426/Documents/csv/t.csv'):
@@ -59,4 +59,18 @@ def gfr():
                     report = grr.read_report(report_path)
                     print('before 2020')
                     data = grr.get_data(report)
+                    if data == []:
+                        continue
+                    panda_d = pd.DataFrame(data, columns = ['GFR','GFR Method',
+                        'Body Surface Method','Clearance','Normalized Clearance',
+                        'Injection time','Vial number','Injection weight',
+                        'Vial weight before injection','Vial weight after injection',
+                        'Clearance Tests','Standard Counts Per','Thining Factor',
+                        'Examination Status','Date','PID'])
+                    panda_d['PID'] = pid
+                    
+                    if os.path.isfile('/home/jlar0426/Documents/csv/t.csv'):
+                        panda_d.to_csv('/home/jlar0426/Documents/csv/t.csv', mode='a', index=False, header=False)
+                    else:
+                        panda_d.to_csv('/home/jlar0426/Documents/csv/t.csv', mode='a', index=False)                    
     
