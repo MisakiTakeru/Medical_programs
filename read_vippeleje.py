@@ -72,8 +72,15 @@ def assemble_data(name):
     for t in types:
         file = reader(name + t)
     
-# skips the first 12 lines as they don't contain any relevant data.
-        for i in range(12):
+# skips the first 12 lines, but gets date and patient id from it.
+        date = next(file)
+        date = date.split(':')[-1].strip()
+        for i in range(8):
+            next(file)
+        
+        pid = next(file)
+        pid= pid.split(':')[-1].split('_')[0].strip()
+        for i in range(2):
             next(file)
     
         units = read_units(next(file))
@@ -105,9 +112,13 @@ def assemble_data(name):
     B2B_BPV_HRV_BRS = pd.merge(B2B_BPV_HRV, BRS, on = 'Time', how = 'left')
 
 # Not including the HR from OSC as it seems suspiciously off compared to actual
-# data from the other files. This will result in a HR_x and HR_y
+# data from the other files. This will result in a HR_x and HR_y 
+# (OSC is a different measurement and shall be kept different as well as DBP and SBP)
     B2B_BPV_HRV_BRS_OSC = pd.merge(B2B_BPV_HRV_BRS, OSC, on = 'Time', how = 'outer').sort_values('Time')
-    
+    B2B_BPV_HRV_BRS_OSC = B2B_BPV_HRV_BRS_OSC.rename(columns = {'HR_x' : 'HR',
+        'SBP' : 'SBP_y', 'DBP' : 'DBP_y'})
+    B2B_BPV_HRV_BRS_OSC['date'] = date
+    B2B_BPV_HRV_BRS_OSC['ID'] = pid
     return B2B_BPV_HRV_BRS_OSC, markings
 
 # BeatToBeat, BPV and HRV have exact same Time and beat, so those 3 can be merged
@@ -116,12 +127,7 @@ def assemble_data(name):
 # HRV we will also be merging with 'LF/HF'.
 # BRS_BRS0 can be merged with those 3 through a left merge on 'Time'
 
-# resperation and respitation keep it as is. I need to create
-# a new Label 'Rest' from 120 sec after last resp to 120 sec before Active Standing.
-# Active standing needs to be 60 seconds before until 240 seconds after start.
-# Active standing done, cut the first 120 sec and last 120 sec.
-# If Carotis is done, then first 10 seconds, and the first 40 seconds after marker for all Carotis.
-#    
+
 
 # An enumerator class to get the expected counts of a Vippeleje experiment.
 class expected_counts(Enum):
@@ -145,9 +151,7 @@ class expected_counts(Enum):
 # false positives, I must check the date of the examination.
 def check_2_part_file(filepath):
     """
-    -----------------
-    check_2_part_file
-    -----------------
+
     Inputs:
         filepath -> String
     
@@ -171,13 +175,73 @@ def check_2_part_file(filepath):
     else:
         return (False, [])
 
+def get_mark_index(name):
+    """
+    Parameters
+    ----------
+    name : string
+        mark name to look up.
+
+    Returns
+    -------
+    i : int or None
+        the index for that mark if it exists otherwise None.
+    """
+    indexes = [i for i,s in enumerate(mark_names) if name in s]
+    l = len(indexes)
+    if l >= 1:
+        if name == 'resperation_slut':
+            i = indexes[-1]
+        elif 'Carotis' in name:
+            return indexes, l
+        else:
+            i = indexes[0]
+    else:
+        i = None
+    if 'Carotis' in name:
+        return [], 0
+    return i
         
+
+def make_labels(row):
+    """
+    Parameters
+    ----------
+    row : Pandas.Series
+        A pandas series gotten through using df.apply(make_labels, axis = 1)
+
+    Returns
+    -------
+    String
+        returns the label given to the dataframe for that row.
+
+    """
+    t = row['Time']
+    lambd = lambda car: (marks[carotis_i[car]][1], t < (float(marks[carotis_i[car]][0]) + 40) and (
+        t > (float(marks[carotis_i[car]][0]) - 10)))
+    if t < rest_slut and t > rest_start:
+        return 'Rest'
+    elif t < active_stand_slut and t > active_stand_start:
+        return 'Active standing'
+    car_res = list(map(lambd, range(l)))
+    car_true = [n for n,b in car_res if b]
+    if len(car_true) != 0:
+        return car_true[0]
+    else:
+        return None        
+
+def make_markers(row):
+    time = row['Time']
+    for i,(t, _) in enumerate(marks):
+        if time < float(t):
+            return marks[i-1][1]
+
     
 if __name__ == '__main__':
 #    name = '/run/user/1000/gvfs/smb-share:server=rghdfsp02,share=dfs/Logget/LovbeskyttetMapper01/Fabry - Collab w KFNM/Data/Vippeleje/011297-0266_schmidt'
 
-    os.chdir('/run/user/1000/gvfs/smb-share:server=rghdfsp02,share=dfs/Logget/LovbeskyttetMapper01/Fabry - Collab w KFNM/Data/Vippeleje')
-
+#    os.chdir('/run/user/1000/gvfs/smb-share:server=rghdfsp02,share=dfs/Logget/LovbeskyttetMapper01/Fabry - Collab w KFNM/Data/Vippeleje')
+    os.chdir('/home/jlar0426/Documents/Temp')
     nameb2b = askopenfilename(filetypes=[('BeattoBeat CSV', '.BeatToBeat.csv')], 
                        initialdir = '/run/user/1000/gvfs/smb-share:server=rghdfsp02,share=dfs/Logget/LovbeskyttetMapper01/Fabry - Collab w KFNM/Data')
 
@@ -226,15 +290,15 @@ if __name__ == '__main__':
 
 # Drops the nan lines made from the OscBP file, since all OscBP time values
 # are different.
-    no_nan = res.drop(res[np.isnan(res.HR_x)].index)
+    no_nan = res.drop(res[np.isnan(res.HR)].index)
         
 # Limiter for maximum y value in graph
-    max_y_lim =  max(no_nan[['sBP', 'dBP','HR_x']].max()) + 5
+    max_y_lim =  max(no_nan[['sBP', 'dBP','HR']].max()) + 5
 
     fig, ax = plt.subplots(height_ratios = [0.1])
 
 # Plots the 3 different lines: heart rate, systolic- and diatolic blood pressure
-    ax.plot(no_nan['Time'], no_nan['HR_x'], label = 'Heart rate')
+    ax.plot(no_nan['Time'], no_nan['HR'], label = 'Heart rate')
     ax.plot(no_nan['Time'], no_nan['sBP'], label = 'systolic')
     ax.plot(no_nan['Time'], no_nan['dBP'], label = 'diatolic')
 
@@ -262,7 +326,7 @@ if __name__ == '__main__':
 
 # Slider that have min val 1 second before first data recording until 500 seconds
 # before last recording.
-    spos = Slider(axpos, 'Pos', res['Time'][0]-1, res['Time'][res.index[-1]]-490)
+    spos = Slider(axpos, 'Pos', res['Time'][0]-1, res['Time'][res.index[-1]])
 
 # Slider update function, it shows a range of 500 seconds, and just changes
 # the area show from the x range.
@@ -302,7 +366,7 @@ if __name__ == '__main__':
     check_but.on_clicked(click)
 
     choice_button_pos = plt.axes([0.75, 0.10, 0.05, 0.05])
-    fig.text(0.68, 0.125, 'Add number to name?: ')
+    fig.text(0.68, 0.125, 'Add number?: ')
     choice_button = CheckButtons(choice_button_pos, ['1','2','3'])
 
     def click_num(key):
@@ -321,65 +385,76 @@ if __name__ == '__main__':
 
 # seems that dxt means right and sin means left
 
-    labels = ['Start Recording', 'resperation_start', 'resperation_slut', 
+    markers = ['Start Recording', 'resperation_start', 'resperation_slut', 
               'Active standing', 'Active standing - done', 'Tilt up', 
               'Tilt down', 'Stop Recording', 'Nitroglycerine', 'Carotis sin',
               'Carotis dxt']
 
     def click_name(name):
-        ind = labels.index(name)
+        ind = markers.index(name)
         if len(names_button.get_checked_labels()) > 1:
             remove = [i for i, x in enumerate(names_button.get_status()) if x and (ind != i)]
             names_button.set_active(remove[0])
 
     names_button_pos = plt.axes([0.50, 0.10, 0.15, 0.20])
     fig.text(0.52, 0.32, 'Is it in need of a name change?')
-    names_button = CheckButtons(names_button_pos, labels)
+    names_button = CheckButtons(names_button_pos, markers)
     names_button.on_clicked(click_name)
 
-# Function for a button, which gets the checked name from CheckButtons and
-# the text from textbox. If there is a checked name and a possible float in
-# the textbox, it will then convert the position of that marker to the new time.
-    def change_time(val):
 
-        try:
-            time = float(textbox.text)
-        except:
-            print('What did ya diddily doo?')
-            return
-
-        label = check_but.get_checked_labels()
-        if label == []:
-            return
-        else:
-# To change text find the dictionary text and use set_x(val)
-# To change vline position find the dictionary, remove the vline and insert the new one.
-            vline = vlines[label[0]]
-            vline[0].remove()
-            vline[0] = ax.vlines(time, 0, max_y_lim, colors = 'r', linestyles = '--')
-            vline[1].set_x(time)
-            mark_index = [x for x,y in enumerate(marks) if y[1] == label[0]][0]
-            marks[mark_index][0] = time
-            fig.canvas.draw_idle()
+    def add_and_finish(val):
+        labels = res.apply(make_labels, axis=1)
+        labels = labels.rename('Label')
+        res_with_labels = pd.concat([res, labels], axis = 1)
+        
+        time_marks = res_with_labels.apply(make_markers, axis = 1)
+        time_marks = time_marks.rename('Markers')
+        res_with_marks = pd.concat([res_with_labels, time_marks], axis = 1)
+        print(res_with_marks)
+        res_with_marks.to_csv('test.csv', mode='a', index=False)
+        plt.close()
+        return 
 
 # textbox position and creation.
     textbox_pos = plt.axes([0.70, 0.20, 0.10, 0.05])
     textbox = TextBox(textbox_pos, 'Time: ')
 
 # apply button position and creation.
-    button_pos = plt.axes([0.85, 0.20, 0.10, 0.05])
-    apply_button = Button(button_pos, 'Apply changes')
-    apply_button.on_clicked(change_time)
+    button_pos = plt.axes([0.85, 0.10, 0.10, 0.05])
+    finish_button = Button(button_pos, 'Finish and Exit')
+    finish_button.on_clicked(add_and_finish)
 
+# Function for a button, which gets the checked name from CheckButtons and
+# the text from textbox. If there is a checked name and a possible float in
+# the textbox, it will then convert the position of that marker to the new time.
     def change_name(val):
+
+        try:
+            time = float(textbox.text)
+        except:
+            print('What did ya diddily doo?')
+#            return
+
         label = check_but.get_checked_labels()
         if label == []:
             return
         else:
             label = label[0]
-        
+
+# To change text find the dictionary text and use set_x(val)
+# To change vline position find the dictionary, remove the vline and insert the new one.
+        label_time = [float(t) for t,m in marks if m == label][0]
+        if time != label_time:
+            vline = vlines[label]
+            vline[0].remove()
+            vline[0] = ax.vlines(time, 0, max_y_lim, colors = 'r', linestyles = '--')
+            vline[1].set_x(time)
+            mark_index = [x for x,y in enumerate(marks) if y[1] == label][0]
+            marks[mark_index][0] = time
+            fig.canvas.draw_idle()
+                
         new_name = names_button.get_checked_labels()
-        if new_name == '':
+        if new_name == []:
             return
         else:
             number = choice_button.get_checked_labels()
@@ -400,8 +475,8 @@ if __name__ == '__main__':
             
 
 # apply name change.
-    button_namechange_pos = plt.axes([0.85, 0.10, 0.10, 0.05])
-    name_change_button = Button(button_namechange_pos, 'Apply name change')
+    button_namechange_pos = plt.axes([0.85, 0.20, 0.10, 0.05])
+    name_change_button = Button(button_namechange_pos, 'Apply changes')
     name_change_button.on_clicked(change_name)
 
     """
@@ -411,10 +486,32 @@ if __name__ == '__main__':
 
     plt.show()
 
+# Starting code for labelling data.
+
+    resp_slut_i = get_mark_index('resperation_slut')
+    rest_start = float(marks[resp_slut_i][0]) + 120
+    active_stand_i = get_mark_index('Active standing')
+    rest_slut = float(marks[active_stand_i][0]) - 120
+    
+    active_stand_start = float(marks[active_stand_i][0]) - 30
+    active_stand_slut = float(marks[active_stand_i][0]) + 240
+        
+    carotis_i, l = get_mark_index('Carotis')
+    
+
+
+
+# resperation and respitation keep it as is. I need to create
+# a new Label 'Rest' from 60 sec after last resp to 120 sec before Active Standing.
+# Active standing needs to be 30 seconds before until 240 seconds after start.
+#slet dette: Active standing done, cut the first 120 sec and last 120 sec.
+# If Carotis is done, then first 10 seconds, and the first 40 seconds after marker for all Carotis.
+#    
 
 # Solution will be to try and detect a 1, del1 or _1 after last name, and if they
 # exist look for an identical name but with 2 instead of 1. If it exist run through both
 # and append their data together, but add end time from 1 to all of time values from 2.
 # otherwise behave as normal.
-
+# In one case there is a 2 part, where name is normal, but there is a del2 which is directly
+# connected to the normal name
 
