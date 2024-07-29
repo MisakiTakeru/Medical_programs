@@ -13,7 +13,7 @@ Vippeleje.py is not able to read an actual file from a Vippeleje examination, bu
 When running Vippeleje.py it will ask the user for a .BeattoBeat.csv file, and will assume that the other 4 files are in the same directory, if not it will fail.
 
 ## GFR
-When run asks for a DICOMDIR file, runs through the file, and then runs gfr_read's functions if the DICOM file is 2020 and after, and runs the gfr_rtf_reader's functions if they are before 2020.
+When run asks for a DICOMDIR file, runs through the file, and then runs gfr_read's functions if the current examniation is a DICOM file from 2020 and after, and runs the gfr_rtf_reader's functions if they are before 2020.
 GFR data before 2020 have stored information about: 
 - Date
 - Clearance
