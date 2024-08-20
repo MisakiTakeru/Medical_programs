@@ -18,7 +18,12 @@ def gfr():
 
     dirloc = path.split('DICOMDIR')[0]
 
-
+    columns = ['GFR','GFR Method',
+        'Body Surface Method','Clearance','Normalized Clearance',
+        'Injection time','Vial number','Injection weight',
+        'Vial weight before injection','Vial weight after injection',
+        'Clearance Tests','Standard Counts Per','Thining Factor',
+        'Examination Status','Date','PID']
 
 # PDF: 1.2.840.10008.5.1.4.1.1.104.1
 # Image 1.2.840.10008.5.1.4.1.1.7
@@ -44,11 +49,9 @@ def gfr():
                         data = gr.get_gfrdata(f)
                         data['Date'] = date
                         data['PID'] = pid
-                        panda_d = pd.DataFrame([data])
-                        if os.path.isfile('/home/jlar0426/Documents/csv/t.csv'):
-                            panda_d.to_csv('/home/jlar0426/Documents/csv/t.csv', mode='a', index=False, header=False)
-                        else:
-                            panda_d.to_csv('/home/jlar0426/Documents/csv/t.csv', mode='a', index=False)
+                        panda_d = pd.DataFrame([data], columns = columns)
+                        
+                        append_to_csv(panda_d)
 
                 elif year < 2020:
                     p0 = series[0x00041500][:3]
@@ -61,16 +64,15 @@ def gfr():
                     data = grr.get_data(report)
                     if data == []:
                         continue
-                    panda_d = pd.DataFrame(data, columns = ['GFR','GFR Method',
-                        'Body Surface Method','Clearance','Normalized Clearance',
-                        'Injection time','Vial number','Injection weight',
-                        'Vial weight before injection','Vial weight after injection',
-                        'Clearance Tests','Standard Counts Per','Thining Factor',
-                        'Examination Status','Date','PID'])
+                    panda_d = pd.DataFrame(data, columns = columns)
                     panda_d['PID'] = pid
                     
-                    if os.path.isfile('/home/jlar0426/Documents/csv/t.csv'):
-                        panda_d.to_csv('/home/jlar0426/Documents/csv/t.csv', mode='a', index=False, header=False)
-                    else:
-                        panda_d.to_csv('/home/jlar0426/Documents/csv/t.csv', mode='a', index=False)                    
-    
+                    append_to_csv(panda_d)
+
+def append_to_csv(df):
+    if os.path.isfile('/home/jlar0426/Documents/csv/t.csv'):
+        df.to_csv('/home/jlar0426/Documents/csv/t.csv', 
+                       mode='a', index=False, header=False)
+    else:
+        df.to_csv('/home/jlar0426/Documents/csv/t.csv', 
+                       mode='a', index=False)   

@@ -217,12 +217,32 @@ def make_labels(row):
 
     """
     t = row['Time']
+    
+    # Starting code for labelling data.
+
+    resp_slut_i = get_mark_index('resperation_slut')
+    rest_start = float(marks[resp_slut_i][0]) + 60
+    active_stand_i = get_mark_index('Active standing')
+    rest_slut = float(marks[active_stand_i][0]) - 120
+        
+    active_stand_start = float(marks[active_stand_i][0]) - 30
+    active_stand_slut = float(marks[active_stand_i][0]) + 240
+    
+    tilt_up_i = get_mark_index('Tilt up')
+    tilt_down_i = get_mark_index('Tilt down')
+    passivt_vip_start = float(marks[tilt_up_i][0]) - 30
+    passivt_vip_slut = float(marks[tilt_down_i][0]) + 60
+    
+    carotis_i, l = get_mark_index('Carotis')
+    
     lambd = lambda car: (marks[carotis_i[car]][1], t < (float(marks[carotis_i[car]][0]) + 40) and (
         t > (float(marks[carotis_i[car]][0]) - 10)))
     if t < rest_slut and t > rest_start:
         return 'Rest'
     elif t < active_stand_slut and t > active_stand_start:
         return 'Active standing'
+    elif t < passivt_vip_slut and t > passivt_vip_start:
+        return 'Passivt vip'
     car_res = list(map(lambd, range(l)))
     car_true = [n for n,b in car_res if b]
     if len(car_true) != 0:
@@ -271,7 +291,7 @@ if __name__ == '__main__':
     name_add = np.ones(len(counts), dtype = int)
 
 # Adds numbers to those marks that exist duplicates of, and if above expected
-# amount gives it a too_many addiction instead.
+# amount gives it a too_many addition instead.
     for i,n in enumerate(markeds):
         if markeds[i] == 'respitation slut':
             markeds[i] = 'resperation_slut'
@@ -370,6 +390,10 @@ if __name__ == '__main__':
     choice_button = CheckButtons(choice_button_pos, ['1','2','3'])
 
     def click_num(key):
+        """
+        Forces the CheckButtons for integers to only allow a maximum of 1 
+        checked box.
+        """
         ind = int(key)-1
         if len(choice_button.get_checked_labels()) > 1:
             remove = [i for i, x in enumerate(choice_button.get_status()) if x and (ind != i)]
@@ -403,6 +427,11 @@ if __name__ == '__main__':
 
 
     def add_and_finish(val):
+        """
+        appends the labels and markers to the pandas dataframe, and appends
+        the dataframe to the database.
+        """
+        
         labels = res.apply(make_labels, axis=1)
         labels = labels.rename('Label')
         res_with_labels = pd.concat([res, labels], axis = 1)
@@ -490,27 +519,14 @@ if __name__ == '__main__':
 
     plt.show()
 
-# Starting code for labelling data.
-
-    resp_slut_i = get_mark_index('resperation_slut')
-    rest_start = float(marks[resp_slut_i][0]) + 120
-    active_stand_i = get_mark_index('Active standing')
-    rest_slut = float(marks[active_stand_i][0]) - 120
-    
-    active_stand_start = float(marks[active_stand_i][0]) - 30
-    active_stand_slut = float(marks[active_stand_i][0]) + 240
-        
-    carotis_i, l = get_mark_index('Carotis')
-    
-
 
 
 # resperation and respitation keep it as is. I need to create
 # a new Label 'Rest' from 60 sec after last resp to 120 sec before Active Standing.
 # Active standing needs to be 30 seconds before until 240 seconds after start.
 #slet dette: Active standing done, cut the first 120 sec and last 120 sec.
-# If Carotis is done, then first 10 seconds, and the first 40 seconds after marker for all Carotis.
-#    
+# If Carotis is done, then first 10 seconds before, and the first 40 seconds after marker for all Carotis.
+# passivt vip - [ ( Tilt_up - 30) : ( Tilt_down + 60 ) ]
 
 # Solution will be to try and detect a 1, del1 or _1 after last name, and if they
 # exist look for an identical name but with 2 instead of 1. If it exist run through both
