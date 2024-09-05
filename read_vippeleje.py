@@ -261,10 +261,11 @@ if __name__ == '__main__':
 #    name = '/run/user/1000/gvfs/smb-share:server=rghdfsp02,share=dfs/Logget/LovbeskyttetMapper01/Fabry - Collab w KFNM/Data/Vippeleje/011297-0266_schmidt'
 
 #    os.chdir('/run/user/1000/gvfs/smb-share:server=rghdfsp02,share=dfs/Logget/LovbeskyttetMapper01/Fabry - Collab w KFNM/Data/Vippeleje')
-    os.chdir('/home/jlar0426/Documents/Temp')
-    nameb2b = askopenfilename(filetypes=[('BeattoBeat CSV', '.BeatToBeat.csv')], 
-                       initialdir = '/run/user/1000/gvfs/smb-share:server=rghdfsp02,share=dfs/Logget/LovbeskyttetMapper01/Fabry - Collab w KFNM/Data')
+#    os.chdir('/home/jlar0426/Documents/Temp')
+    nameb2b = askopenfilename(filetypes=[('BeattoBeat CSV', '.BeatToBeat.csv')])
+#                       initialdir = '/run/user/1000/gvfs/smb-share:server=rghdfsp02,share=dfs/Logget/LovbeskyttetMapper01/Fabry - Collab w KFNM/Data')
 
+    os.chdir(os.path.dirname(nameb2b))
     nameb2b = name = os.path.basename(nameb2b)
 
     name = nameb2b.replace('.BeatToBeat.csv','')
@@ -440,11 +441,28 @@ if __name__ == '__main__':
         time_marks = time_marks.rename('Markers')
         res_with_marks = pd.concat([res_with_labels, time_marks], axis = 1)
         print(res_with_marks)
-        
+
+# slutdataene af al dataene.
         if os.path.isfile('/home/jlar0426/Documents/csv/test.csv'):
             res_with_marks.to_csv('/home/jlar0426/Documents/csv/test.csv', mode='a', index=False, header=False)
         else:
             res_with_marks.to_csv('/home/jlar0426/Documents/csv/test.csv', mode='a', index=False)
+        mark_df = pd.DataFrame(marks, columns = ['Time', 'Mark'])
+        mark_df['date'] = res['date'][0]
+        mark_df['ID'] = res['ID'][0]
+# markeringerne lavet af examinatorerne, og de ændringer der er blevet lavet til dem.
+        if os.path.isfile('/home/jlar0426/Documents/csv/marks.csv'):
+            mark_df.to_csv('/home/jlar0426/Documents/csv/marks.csv', mode='a', index=False, header=False)
+        else:
+            mark_df.to_csv('/home/jlar0426/Documents/csv/marks.csv', mode='a', index=False)
+        test = {'date' : [res['date'][0]], 'ID' : [res['ID'][0]]}
+        exam = pd.DataFrame.from_dict(test)
+
+# Not Yet Implemented: ment til at blive brugt til at checke om der er allerede blevet gennemkørt dataene før.
+        if os.path.isfile('/home/jlar0426/Documents/csv/vipexam.csv'):
+            exam.to_csv('/home/jlar0426/Documents/csv/vipexam.csv', mode='a', index=False, header=False)
+        else:
+            exam.to_csv('/home/jlar0426/Documents/csv/vipexam.csv', mode='a', index=False)        
         plt.close()
         return 
 
@@ -516,7 +534,7 @@ if __name__ == '__main__':
     Finished all button creations.
     """
     
-
+    plt.animated(True)
     plt.show()
 
 
