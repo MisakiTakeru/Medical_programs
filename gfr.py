@@ -6,15 +6,17 @@ import glob
 import functools
 import pandas as pd
 import os
+from tkinter.filedialog import askdirectory
 
-def gfr():
+
+def find_gfr_data(dcmDIR = None):
     """
     Goes through a DICOMDIR and checks the year, if the year is before 2020
     means we have an older version of data storage.
     If it is 2020 or later it means we have the newer version and looks for
     Image storage to get the data from a examination.
     """
-    dataset, path = gr.read_dcm()
+    dataset, path = gr.read_dcm(dcmDIR)
 
     dirloc = path.split('DICOMDIR')[0]
 
@@ -70,9 +72,27 @@ def gfr():
                     append_to_csv(panda_d)
 
 def append_to_csv(df):
-    if os.path.isfile('/home/jlar0426/Documents/csv/t.csv'):
-        df.to_csv('/home/jlar0426/Documents/csv/t.csv', 
-                       mode='a', index=False, header=False)
+    save_to = '/home/jlar0426/Documents/csv/t.csv'
+    
+    if os.path.isfile(save_to):
+        df.to_csv(save_to, mode='a', index=False, header=False)
     else:
-        df.to_csv('/home/jlar0426/Documents/csv/t.csv', 
-                       mode='a', index=False)   
+        df.to_csv(save_to, mode='a', index=False)
+# TODO: in if True load csv, merge it and drop duplicates or check if df data exist in csv.
+# removes all duplicates of the csv and saves it (this is done by completely overwriting)
+    csv = pd.read_csv(save_to, dtype = str)
+    csv = csv.drop_duplicates(subset = ['Date','PID'], keep = 'last')
+    csv.to_csv(save_to, mode='w', index=False)
+
+def gfr_dir(path = None):
+    
+    if path == None:
+        path = askdirectory()
+    dcmdirs = glob.glob(path + '/*/DICOMDIR')
+    
+    for dcmdir in dcmdirs:
+        find_gfr_data(dcmdir)
+
+
+if __name__ == '__main__':
+    gfr_dir()
