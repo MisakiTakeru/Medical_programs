@@ -21,6 +21,9 @@ class stretch_rect:
 # grabbed need to be one of 3 None, Left or Right to indicate which side that needs to be changed or if neither.
         self.grabbed = 'None'
 
+# will be true when dragging and otherwise False.
+        self.dragging = False
+
 # the offset of where the mouse is to the x point dragged.        
         self.offset = None
     
@@ -45,26 +48,40 @@ class stretch_rect:
                 return
 #            print(self.rect.get_width())
             self.fig.canvas.draw_idle()
+        elif self.dragging:
+            new_loc = np.array((event.xdata, event.ydata)) + self.offset
+            self.rect.set_xy(new_loc)
+            self.fig.canvas.draw_idle()
         return
 
     def on_click(self, event):
         if event.inaxes != self.ax:
             return
-        self.grab_side(event.xdata, event.ydata)
-        if self.grabbed == 'Left':
-            print('this is left side')
-            self.offset = self.rect.get_xy() - np.array(event.xdata, event.ydata)
-            self.stretch = True
-        elif self.grabbed == 'Right':
-            print('hello right side')
-            self.offset = self.rect.get_corners()[1] - np.array(event.xdata, event.ydata)
-            self.stretch = True
         self.x0, self.y0 = (event.xdata, event.ydata)
+        if event.button == 1:
+            self.grab_side(event.xdata, event.ydata)
+            if self.grabbed == 'Left':
+                print('this is left side')
+                self.offset = self.rect.get_xy() - np.array([event.xdata, event.ydata])
+                self.stretch = True
+            elif self.grabbed == 'Right':
+                print('hello right side')
+                self.offset = self.rect.get_corners()[1] - np.array([event.xdata, event.ydata])
+                self.stretch = True
+        elif event.button == 3:
+            center = self.rect.get_center()
+            p = np.array([event.xdata, event.ydata])
+            dist = np.linalg.norm(center - p)
+            if dist < self.allowed_diff:
+                self.dragging = True
+                self.offset = self.rect.get_xy() - p
+            
         return
     
     def on_release(self, event):
         self.stretch = False
         self.grabbed = 'None'
+        self.dragging = False
         return
     
     def grab_side(self, x, y):
@@ -76,7 +93,7 @@ class stretch_rect:
         y : float
             mouseclick y position.
 
-        
+        Checks if a side of a rectangle is grabbed, and if true saves it onto self.grabbed        
         """
         sides = self.rect.get_corners()
         rect_left_x = sides[0,0]
@@ -88,12 +105,15 @@ class stretch_rect:
                     (abs(rect_upper_y - y) < self.allowed_diff) 
                     or ((y > rect_lower_y) and (y < rect_upper_y)))
 
-# if there are less than 5 points difference in x values.
+# if there are less than allowed_diff points difference in x values.
         if (abs(rect_left_x  - x) < self.allowed_diff) and within_y:
             self.grabbed = 'Left'
         
         elif (abs(rect_right_x  - x) < self.allowed_diff) and within_y:
             self.grabbed = 'Right'
+    def get_area(self):
+        x = self.rect.get_x()
+        return x, (x + self.rect.get_width())
 
 
 if __name__ == '__main__':
