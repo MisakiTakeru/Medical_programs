@@ -273,16 +273,19 @@ if __name__ == '__main__':
     
 
     res, marks = assemble_data(name)
-    
-    (boolean, dat) = check_2_part_file(nameb2b)
-    if boolean:
-        res2 = dat[0]
-        marks2 = dat[1]
-        res2.Time += res['Time'].iloc[-1]
-        marks2 = [[float(t) + res['Time'].iloc[-1], m] for t,m in marks2]
+
+# Code to check if there are multiple files for the same examination
+# For safety reasons I have chosen to not include this to ensure users does not
+# get confused.    
+#    (boolean, dat) = check_2_part_file(nameb2b)
+#    if boolean:
+#        res2 = dat[0]
+#        marks2 = dat[1]
+#        res2.Time += res['Time'].iloc[-1]
+#        marks2 = [[float(t) + res['Time'].iloc[-1], m] for t,m in marks2]
         
-        marks = marks + marks2
-        res = pd.concat([res, res2], ignore_index=True)
+#        marks = marks + marks2
+#        res = pd.concat([res, res2], ignore_index=True)
 
     times, markeds = zip(*marks)
     markeds = list(markeds)
@@ -327,13 +330,13 @@ if __name__ == '__main__':
 # Creates the red transparent marker lines, and sets all marker text on the axis.
 # Made as a dictionary for easy access when they need to be changed.
     vlines = {}
-    for t,n in marks:
+    for i,(t,n) in enumerate(marks):
         time = float(t)
         vline = ax.vlines(time, 0, max_y_lim, colors = 'r', linestyles = '--')
         
         vtext = ax.text(time, max_y_lim, n, rotation = 20)
         
-        vlines[n] = [vline,vtext]
+        vlines[i] = [vline,vtext]
 
 
     """
@@ -372,17 +375,30 @@ if __name__ == '__main__':
     cb_pos = plt.axes([0.10, 0.10, 0.15, 0.20])
     fig.text(0.112, 0.32, 'Which marking needs to be changed?')
     check_but = CheckButtons(cb_pos, mark_names)
+# Variable for comparing the previous state with the new state to conclude
+# newest button press.
+    cb_status = check_but.get_status()
 
 
 
 # When a checkbox is clicked, it will check if there are multiple checked on
 # If yes, it will remove everyone except the newest one allowing only 1 checked box.
-    def click(label):
-        ind = [x for x,y in enumerate(marks) if y[1] == label][0]
+# Now also handles cases with identical names by looking at it's status instead of the label
+    def click(_):
+        check_but.eventson = False
+        status = check_but.get_status()
+        ind = [i for i,(x0,x1) in enumerate(zip(cb_status, status)) if x0 != x1]
+        change = [i for i,x in enumerate(cb_status) if x]
         if len(check_but.get_checked_labels()) > 1:
-            remove = [i for i, x in enumerate(check_but.get_status()) if x and (ind != i)]
+            remove = [i for i, x in enumerate(status) if x and (ind[0] != i)]
             check_but.set_active(remove[0])
-        textbox.set_val(marks[ind][0])
+        textbox.set_val(marks[ind[0]][0])
+
+        if len(change) > 0:
+            cb_status[change[0]] = False
+        if ind != change:
+            cb_status[ind[0]] = not cb_status[ind[0]]
+        check_but.eventson = True
 
     check_but.on_clicked(click)
 
@@ -486,22 +502,22 @@ if __name__ == '__main__':
             print('What did ya diddily doo?')
 #            return
 
-        label = check_but.get_checked_labels()
-        if label == []:
+#        label = check_but.get_checked_labels()
+        ind = [i for i,x in enumerate(check_but.get_status()) if x == True]
+        if ind == []:
             return
         else:
-            label = label[0]
+            ind = ind[0]
 
 # To change text find the dictionary text and use set_x(val)
 # To change vline position find the dictionary, remove the vline and insert the new one.
-        label_time = [float(t) for t,m in marks if m == label][0]
+        label_time = marks[ind][0]
         if time != label_time:
-            vline = vlines[label]
+            vline = vlines[ind]
             vline[0].remove()
             vline[0] = ax.vlines(time, 0, max_y_lim, colors = 'r', linestyles = '--')
             vline[1].set_x(time)
-            mark_index = [x for x,y in enumerate(marks) if y[1] == label][0]
-            marks[mark_index][0] = time
+            marks[ind][0] = time
             fig.canvas.draw_idle()
                 
         new_name = names_button.get_checked_labels()
@@ -514,12 +530,10 @@ if __name__ == '__main__':
             else:
                 new_name = new_name[0] + '_' + number[0]
             
-        mark_index = [x for x,y in enumerate(marks) if y[1] == label][0]
-        marks[mark_index][1] = new_name
-        vlines[label][1].set_text(new_name)
-        vlines[new_name] = vlines.pop(label)
+        marks[ind][1] = new_name
+        vlines[ind][1].set_text(new_name)
+
         
-        ind = [i for i, l in enumerate(check_but.labels) if l.get_text() == label][0]
         check_but.labels[ind].set_text(new_name)
 
         fig.canvas.draw_idle()        
@@ -534,7 +548,6 @@ if __name__ == '__main__':
     Finished all button creations.
     """
     
-    plt.animated(True)
     plt.show()
 
 
