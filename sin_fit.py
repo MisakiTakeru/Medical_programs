@@ -274,11 +274,13 @@ def ten_period_resps(resp_data, markers, res_num):
 
     periods = list(map(split_data, time_defs))
 
-    hr_data, chosen = image_handling(periods, res_num, 'HR')
+    hr_data, hr_fit, chosen = image_handling(periods, res_num, 'HR')
 
     
-    mean_hr, std_hr, maxs_hr, mins_hr = data_handling(hr_data, chosen) 
-    bp_data, chosen1, chosen2 = image_handling(periods, res_num, ['sBP', 'dBP'])
+    mean_hr, std_hr, maxs_hr, mins_hr = data_handling(hr_data, chosen)
+    mean_hr_fit, std_hr_fit, maxs_hr_fit, mins_hr_fit = data_handling(hr_fit, chosen)
+
+    bp_data, bp_fit, chosen1, chosen2 = image_handling(periods, res_num, ['sBP', 'dBP'])
     
     sBP_data = [x[0] for x in bp_data]
     dBP_data = [x[1] for x in bp_data]
@@ -286,11 +288,21 @@ def ten_period_resps(resp_data, markers, res_num):
     mean_sBP, std_sBP, maxs_sBP, mins_sBP = data_handling(sBP_data, chosen1)
     mean_dBP, std_dBP, maxs_dBP, mins_dBP = data_handling(dBP_data, chosen2)
 
+    sBP_fit = [x[0] for x in bp_fit]
+    dBP_fit = [x[1] for x in bp_fit]
+
+    mean_sBP_fit, std_sBP_fit, maxs_sBP_fit, mins_sBP_fit = data_handling(sBP_fit, chosen1)
+    mean_dBP_fit, std_dBP_fit, maxs_dBP_fit, mins_dBP_fit = data_handling(dBP_fit, chosen2)
+
     hr = [mean_hr, std_hr, maxs_hr, mins_hr, chosen]
     sBP = [mean_sBP, std_sBP, maxs_sBP, mins_sBP, chosen1]
     dBP = [mean_dBP, std_dBP, maxs_dBP, mins_dBP, chosen2]
+    hr_stats_fit = [mean_hr_fit, std_hr_fit, maxs_hr_fit, mins_hr_fit]
+    sBP_stats_fit = [mean_sBP_fit, std_sBP_fit, maxs_sBP_fit, mins_sBP_fit]
+    dBP_stats_fit = [mean_dBP_fit, std_dBP_fit, maxs_dBP_fit, mins_dBP_fit]
 
-    return hr, sBP, dBP
+
+    return hr, sBP, dBP, hr_stats_fit, sBP_stats_fit, dBP_stats_fit
 
 def image_handling(periods, res_num, used_data):
     fig, ax = plt.subplots(height_ratios = [0.1])
@@ -300,13 +312,15 @@ def image_handling(periods, res_num, used_data):
     plt.title(tit)
 
     data = []
+    data_fit = []
     for i in range(len(periods)):
         if type(used_data) == str:
             param, p_cov, time, d_type = fit_resp(periods[i], used_data)
 
             data.append(d_type)
             t2 = np.arange(time[0],time[-1], 0.1)
-            t = sine(t2, param[0], param[1], param[2], param[3])            
+            t = sine(t2, param[0], param[1], param[2], param[3])
+            data_fit.append(t)
 
             ax.plot(t2, t, label = 'line' + str(i))
             ax.scatter(time, d_type)
@@ -321,6 +335,7 @@ def image_handling(periods, res_num, used_data):
             
             t1 = sine(time2, param1[0], param1[1], param1[2], param1[3])            
             t2 = sine(time2, param2[0], param2[1], param2[2], param2[3])
+            data_fit.append([t1, t2])
             
             ax.plot(time2, t1, label = 'line' + str(i) + ', ' + used_data[0])
             ax.scatter(time1, d_type1)
@@ -345,8 +360,8 @@ def image_handling(periods, res_num, used_data):
     chosen = check_but.get_status()
     if type(used_data) == list:
         chosen2 = check_but2.get_status()
-        return data, chosen, chosen2
-    return data, chosen
+        return data, data_fit, chosen, chosen2
+    return data, data_fit, chosen
 
 
 def data_handling(data, chosen):
@@ -354,12 +369,14 @@ def data_handling(data, chosen):
     maxs = []
     mins = []
     for i in range(len(chosen)):
-        d = data[i] * chosen[i]
+#        d = data[i] * chosen[i]
+        d = data[i]
         maxima = max(d)
         minima = min(d)
         used_data = np.append(used_data, [maxima - minima])
         maxs.append(maxima)
         mins.append(minima)
+    used_data = used_data * chosen
     used_data = [d for d in used_data if d != 0]
     print(used_data)    
     mean = np.mean(used_data)
@@ -374,14 +391,20 @@ if __name__ == '__main__':
     resp_datas, resp_times = read_examination(date, pid, 0)
     for i in range(3):
 #        param, p_cov, time, hr = fit_resp(resp_datas[i])
-        hr, sBP, dBP = ten_period_resps(resp_datas[i], resp_times[i], i)
+        hr, sBP, dBP, hr_fit, sBP_fit, dBP_fit = ten_period_resps(resp_datas[i], resp_times[i], i)
         print('respiration ' + str(i+1))
         print('hr')
         print(hr)
+        print('hr fit')
+        print(hr_fit)
         print('sBP')
         print(sBP)
+        print('sBP fit')
+        print(sBP_fit)
         print('dBP')
         print(dBP)
+        print('dBP fit')
+        print(dBP_fit)
 
 
     t = patches.Rectangle((700,60), 20, 20, fill = False)
