@@ -46,7 +46,6 @@ class stretch_rect:
 # For left side we need to change the width of the rectangle and it's x coordinate.
             else:
                 return
-#            print(self.rect.get_width())
             self.fig.canvas.draw_idle()
         elif self.dragging:
             new_loc = np.array((event.xdata, event.ydata)) + self.offset
@@ -61,11 +60,9 @@ class stretch_rect:
         if event.button == 1:
             self.grab_side(event.xdata, event.ydata)
             if self.grabbed == 'Left':
-                print('this is left side')
                 self.offset = self.rect.get_xy() - np.array([event.xdata, event.ydata])
                 self.stretch = True
             elif self.grabbed == 'Right':
-                print('hello right side')
                 self.offset = self.rect.get_corners()[1] - np.array([event.xdata, event.ydata])
                 self.stretch = True
         elif event.button == 3:
