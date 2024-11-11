@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+Updated on Wed Oct  2 2024
+
+@author: Joachim Normann Larsen
+"""
+
 import gfr_read as gr
 import gfr_rtf_reader as grr
 import glob

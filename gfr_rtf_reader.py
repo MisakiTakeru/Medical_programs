@@ -1,5 +1,10 @@
 import re
 from tkinter.filedialog import askopenfilename
+"""
+Updated on Mon Sep  2 2024
+
+@author: Joachim Normann Larsen
+"""
 
 # the regex to find the lines we want from the report
 prog = re.compile(r'[\d-]+\s+[a-zA-Z():\/]*\s\d+\s+[a-zA-Z():\/\s.0-9 -]*')

@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+Updated on Wed Oct  9 2024
+
+@author: Joachim Normann Larsen
+"""
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -28,13 +33,16 @@ def read_examination(date, pid, exam, ex_time_after = 0):
     """
     data = pd.read_csv('/home/jlar0426/Documents/csv/test.csv')
     markers = pd.read_csv('/home/jlar0426/Documents/csv/marks.csv')
-
+    
 # Gets data from specific date and id 
     did = data.loc[(data['date'] == date) & (data['ID'] == pid)]
     mid = markers.loc[(markers['date'] == date) & (markers['ID'] == pid)]
 
     mark_data = mid[mid['Mark'].str.contains(exam)]
     mark_data = mark_data.reset_index(drop = True)
+    
+    if mark_data.empty:
+        return pd.DataFrame([]), mark_data
 
     exam_data = did.loc[(did['Time'] < (mark_data['Time'][1] + ex_time_after)) & 
                          (did['Time'] > (mark_data['Time'][0] - 45))]
@@ -123,8 +131,10 @@ def find_min_max(data, mark_start, interval, calc = ['sBP', 'dBP', 'HR'],
         print('length of types to use and length of which to gather are different')
         return
     
+    # Active stand find within first 15 seconds
+    # Carotis find within first 45 seconds.    
     tdata = data.loc[(data['Time'] >= mark_start) & 
-                          (data['Time'] <= (mark_start + 20))] 
+                          (data['Time'] <= (mark_start + interval))] 
     
     res = []
     for i in range(len(calc)):
@@ -134,10 +144,10 @@ def find_min_max(data, mark_start, interval, calc = ['sBP', 'dBP', 'HR'],
 #    min_sBP = min(tdata['sBP'].values)
 #    min_dBP = min(tdata['dBP'].values)
 #    max_HR = max(tdata['HR'].values)
-    
+    res = dict(zip(calc, res))
     return res
 
-def plot_data(exam_data, mark_data, rectangles, min_max = False):
+def plot_data(exam_data, mark_data, rectangles, min_max = False, dtypes= [], funcs = []):
     """
     Parameters
     ----------
@@ -195,20 +205,6 @@ def plot_data(exam_data, mark_data, rectangles, min_max = False):
         print('mean: ', hr_mean, ', std: ', hr_std)
         print('interval: ', x0, x1)
 
-    if min_max:
-        if mark_data.loc[0]['Mark'] == 'Active standing':
-            mark_start = mark_data.loc[mark_data['Mark'] == 'Active standing']['Time'].values[0]
-        elif mark_data[mark_data['Mark'].str.contains('Carotis')]:
-            print('do something ya fool')
-            print('ok, I leave')
-            return
-        minmaxs = find_min_max(exam_data, mark_start, 20)
-    
-        print('minima:')
-        print('dBP: ', minmaxs[1], 'sBP', minmaxs[0])
-        print('maxima')
-        print('HR', minmaxs[2])
-
 def create_dicts(marks, lengths, offsets, colours, dists):
     lm = len(marks)
     ll = len(lengths)
@@ -238,23 +234,37 @@ if __name__ == '__main__':
     pid = '020698-0931'
 
 # Active standing test:    
-    active_stand_rects = [{'mark' : 'Active standing', 'length' : 30, 
-                           'offset' :180, 'colour' : 'lime', 'dist active' : 10},
-                          {'mark' : 'Active standing', 'length' : 30, 
-                           'offset' :-30, 'colour' : 'deepskyblue', 'dist active' : 10}]
+#    active_stand_rects = [{'mark' : 'Active standing', 'length' : 30, 
+#                           'offset' :180, 'colour' : 'lime', 'dist active' : 10},
+#                          {'mark' : 'Active standing', 'length' : 30, 
+#                           'offset' :-30, 'colour' : 'deepskyblue', 'dist active' : 10}]
     
-#    exam_data, mark_data = read_examination(date, pid, 'Active standing', True)
+#    exam_data, mark_data = read_examination(date, pid, 'Active standing')
 
 #    plot_data(exam_data, mark_data, active_stand_rects)
-
+#    mark_start = mark_data.loc[mark_data['Mark'] == 'Active standing']['Time'].values[0]
+#    res = find_min_max(exam_data,mark_start, 15)
+#    print(res)
     
 # Tilt test:
     exam_data, mark_data = read_examination(date, pid, 'Tilt', 240)
     
     one_fourth = (mark_data['Time'][1] - mark_data['Time'][0])/4
-    
-    tilt_rects = create_dicts(['Tilt up', 'Tilt up', 'Tilt down'], [30, 80, 80], 
-                              [-40, one_fourth, -one_fourth], 
-                              ['deepskyblue', 'limegreen', 'c'], [30, 30, 30])
+
+# extra rectangle for after tilt down  x<  
+    tilt_rects = create_dicts(['Tilt up', 'Tilt up', 'Tilt down', 'Tilt down'],
+                              [30, 30, 30, 30], 
+                              [-40, one_fourth, -one_fourth, 40], 
+                              ['deepskyblue', 'limegreen', 'c', 'darkorchid'], 
+                              [30, 30, 30, 30])
 
     plot_data(exam_data, mark_data, tilt_rects)
+
+# Carotis test:
+#    exam_data, mark_data = read_examination(date, pid, 'Carotis')
+    
+#    print(exam_data, mark_data)
+
+#    mark_start =  mark_data.loc[mark_data['Mark'] == 'Carotis sin']['Time'].values[0]
+#    res = find_min_max(exam_data,mark_start, 45)
+#    print(res)

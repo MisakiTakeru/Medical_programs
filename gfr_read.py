@@ -1,6 +1,11 @@
 import pydicom as pyd
 import pprint
 from tkinter.filedialog import askopenfilename
+"""
+Updated on Mon Sep  2 2024
+
+@author: Joachim Normann Larsen
+"""
 
 def read_dcm(path = None):
     if path == None:

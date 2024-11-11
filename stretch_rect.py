@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+Updated on Wed Oct  9 2024
+
+@author: Joachim Normann Larsen
+"""
 
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle

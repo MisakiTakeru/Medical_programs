@@ -9,6 +9,12 @@ from tkinter.filedialog import askopenfilename
 import os
 from pathlib import Path
 #matplotlib.use('TkAgg')
+"""
+Updated on Mon Oct  7 2024
+
+@author: Joachim Normann Larsen
+"""
+
 
 # In case of this program not opening a new window, but instead tries to 
 # show it in IDE run this line in console: %matplotlib qt

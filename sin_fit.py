@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+Updated on Wed Oct  9 2024
+
+@author: Joachim Normann Larsen
+"""
 
 import numpy as np
 from scipy.optimize import curve_fit
@@ -87,9 +92,6 @@ def fit_resp(exam, data_type):
     maximas, _ = find_peaks(hr)
     minimas, _ = find_peaks(hr*(-1))
     
-#    print('extremas')
-#    print(minimas, maximas)
-
 # Amplitude guess based on all of the maxima and minima
     A_guess = (np.mean(hr[maximas]) - np.mean(hr[minimas]))/2
 # Set in for the 10 second intervals calculations as there is not always enough well defined points to find peaks.
@@ -170,7 +172,7 @@ def set_rois(data, time):
 #    print(time[minimas])
     return
     
-# testing plot interacbility
+# testing plot interactibility
 # A class for dragging patches in an axis. Input is a list of draggable patches.
 class interact(object):
     
@@ -255,13 +257,9 @@ class interact(object):
 
 
 def ten_period_resps(resp_data, markers, res_num):
-#    print(resp_data)
-#    print(markers)
     
     t_range = np.arange(markers[0], markers[1], (markers[1] - markers[0]) / 6)
     t_range = np.append(t_range,markers[1])
-#    print(markers)
-#    print(t_range)
     
     lambd_tuplify = lambda i : (t_range[i], t_range[i+1])
     
@@ -297,6 +295,7 @@ def ten_period_resps(resp_data, markers, res_num):
     hr = [mean_hr, std_hr, maxs_hr, mins_hr, chosen]
     sBP = [mean_sBP, std_sBP, maxs_sBP, mins_sBP, chosen1]
     dBP = [mean_dBP, std_dBP, maxs_dBP, mins_dBP, chosen2]
+    
     hr_stats_fit = [mean_hr_fit, std_hr_fit, maxs_hr_fit, mins_hr_fit]
     sBP_stats_fit = [mean_sBP_fit, std_sBP_fit, maxs_sBP_fit, mins_sBP_fit]
     dBP_stats_fit = [mean_dBP_fit, std_dBP_fit, maxs_dBP_fit, mins_dBP_fit]
@@ -378,7 +377,7 @@ def data_handling(data, chosen):
         mins.append(minima)
     used_data = used_data * chosen
     used_data = [d for d in used_data if d != 0]
-    print(used_data)    
+    print(used_data)
     mean = np.mean(used_data)
     std = np.std(used_data)
     return mean, std, maxs, mins
