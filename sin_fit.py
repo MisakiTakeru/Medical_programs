@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Updated on Wed Oct  9 2024
+Updated on Mon Nov 11 2024
 
 @author: Joachim Normann Larsen
 """
@@ -13,8 +13,6 @@ import pandas as pd
 from scipy.fft import fft, fftfreq
 from scipy.signal import find_peaks
 import matplotlib.patches as patches
-import functools
-from matplotlib.widgets import CheckButtons, TextBox
 
 def read_examination(date, pid, resp_nr):
     """
@@ -103,20 +101,8 @@ def fit_resp(exam, data_type):
     v_guess = np.mean(hr)
 
 #    print([A_guess, B_guess_fft, h_guess, v_guess])
-#    try:
 # setting maxfev (max function evaluations) up to 10000 since I have hit situations where it failed since it took more than 1000 steps.
     param, p_cov = curve_fit(sine, time, hr, p0 = [A_guess, B_guess_fft, h_guess, v_guess], maxfev = 10000)
-#    except:
-#        plt.scatter(time,hr)
-#        t_new = np.arange(time[0],time[-1], 0.0001)
-#        B_guess = (2*np.pi)/((time[-1]-time[0]))
-#        print(B_guess, B_guess_fft)
-#        param, p_cov = curve_fit(sine, time, hr, p0 = [A_guess, B_guess_fft, h_guess, v_guess])
-#        plt.plot(t_new, t2)
-#        plt.show()
-
-#    param2, p_cov2 = curve_fit(sine, time, hr, p0 = [A_guess, B_guess, h_guess, v_guess])
-#    print(param, param2)
     return param, p_cov, time, hr
 
 # function to loop over to take two elements at a time
@@ -131,132 +117,25 @@ def resp_areas(resps_t, did):
 def sine(t,A, B, H, V):
     return A * np.sin(B*t + H) + V
 
-def sine_fit(t, y, m_start, m_end):
+def ten_period_resps(resp_data, markers, res_num):
     """
+    
+
     Parameters
     ----------
-    t : ndarray
-        input of the x-axis value.
-    y : ndarray
-        input of the y-axis values.
-    m_start : float
-        time for marker start.
-    m_end : float
-        time for marker end.
+    resp_data : pd.DataFrame
+        All data point for a given respiration period.
+    markers : tuple
+        A Tuple of when the period starts and end.
+    res_num : int
+        indication of which respiration is currently being worked on.
 
     Returns
     -------
-    p_opt : ndarray
-        optimized parameters of the sine function.
-    p_cov : ndarray
-        covariance of the optimized parameters.
+    Returns the mean, std, maximas, minimas and which 10 sec intervals to be
+    included of the HR, sBP, dBP and their fits.
 
     """
-    maximas, _ = find_peaks(y, distance = 7)
-    minimas, _ = find_peaks(y*(-1), distance = 7)
-    A_guess = (np.mean(y[maximas]) - np.mean(y[minimas]))/2
-    B_guess = (2*np.pi)/((m_end - m_start)/6)
-    H_guess = 0
-    V_guess = np.mean(y)
-    guess = [A_guess, B_guess, H_guess, V_guess]
-    p_opt, p_cov = curve_fit(sine, t, y, p0 = guess)
-    return p_opt, p_cov
-
-# Function to calculate the 12 areas for one respiration to look for data for calculating mean and std
-def set_rois(data, time):
-    maximas, _ = find_peaks(data, distance = 7)
-    minimas, _ = find_peaks(data*(-1), distance = 7)
-#    print(maximas)
-#    print(time[maximas])
-#    print(minimas)
-#    print(time[minimas])
-    return
-    
-# testing plot interactibility
-# A class for dragging patches in an axis. Input is a list of draggable patches.
-class interact(object):
-    
-    def __init__(self, artists):
-        self.artists = artists
-        self.fig = self.artists[0].figure
-        self.ax = self.artists[0].axes
-
-        self.fig.canvas.mpl_connect('button_press_event', self.on_press)
-        self.fig.canvas.mpl_connect('button_release_event', self.on_release)
-        self.fig.canvas.mpl_connect('motion_notify_event', self.on_motion)
-
-        self.dragging = False
-        self.selecting = False
-        self.selected_artists = []
-        self.rect = patches.Rectangle((700,55),20,20, linestyle = '--', fill = False)
-        self.ax.add_patch(self.rect)
-        self.rect.set_visible(False)
-        self.x0 = 0
-        self.y0 = 0
-        
-    def on_press(self, event):
-        if event.inaxes != self.ax:
-            return
-        elif event.button == 1:
-            is_on_artist = False
-            self.x0, self.y0 = (event.xdata, event.ydata)
-            for art in self.artists:
-                if art.contains(event)[0]:
-                    is_on_artist = art
-            if is_on_artist:
-# If there has been pressed on an patch outside the box we only want the new one.
-                if is_on_artist not in self.selected_artists:
-                    self.selected_artists = [is_on_artist]
-# self.offset need to be calculated as an array since it is possible there are multiple
-                self.offset = ([p.get_xy() for p in self.selected_artists] - 
-                               np.array((event.xdata, event.ydata)))
-                self.dragging = True
-                return
-            else:
-                self.selecting = True
-                self.selected_artists = []
-
-    def on_motion(self, event):
-        if event.inaxes != self.ax:
-            return
-        if self.selecting:
-            self.rect.set_visible(True)
-            xlim, ylim = self.sort_pos(event.xdata, event.ydata)
-            self.rect.set_xy((xlim[0], ylim[0]))
-            self.rect.set_width(np.diff(xlim)[0])
-            self.rect.set_height(np.diff(ylim)[0])
-
-        elif self.dragging:
-            new_loc = np.array((event.xdata, event.ydata)) + self.offset
-            for i,art in enumerate(self.selected_artists):
-                art.set_xy(new_loc[i])
-        self.fig.canvas.draw_idle()
-
-    def on_release(self, event):
-        if event.inaxes != self.ax:
-            return
-        if self.selecting:
-            xlim, ylim = self.sort_pos(event.xdata, event.ydata)
-            for art in self.artists:
-                cx, cy = art.get_center()
-                if (cx >= xlim[0] and cx < xlim[1] and cy >= ylim[0] 
-                    and cy < ylim[1]):
-                        self.selected_artists.append(art)
-            self.selecting = False
-            self.rect.set_visible(False)
-            self.fig.canvas.draw_idle()
-        elif self.dragging:
-            self.dragging = False
-
-        
-    def sort_pos(self, x, y):
-        self.x1, self.y1 = (x, y)
-        xlim = np.sort([self.x0, self.x1])
-        ylim = np.sort([self.y0, self.y1])
-        return xlim, ylim        
-
-
-def ten_period_resps(resp_data, markers, res_num):
     
     t_range = np.arange(markers[0], markers[1], (markers[1] - markers[0]) / 6)
     t_range = np.append(t_range,markers[1])
@@ -304,6 +183,28 @@ def ten_period_resps(resp_data, markers, res_num):
     return hr, sBP, dBP, hr_stats_fit, sBP_stats_fit, dBP_stats_fit
 
 def image_handling(periods, res_num, used_data):
+    """
+    
+
+    Parameters
+    ----------
+    periods : list
+        list of 10 second interval pd.DataFrame points.
+    res_num : int
+        Which respiration part is currently being worked on.
+    used_data : str or list
+        Which data is currently being used to plot data.
+
+    Returns
+    -------
+    data : list
+        list of original datapoints from the 10 seconds intervals.
+    data_fit : list
+        list of the fitted datapoints from the 10 seconds intervals
+    chosen : list
+        list of which 10 seconds intervals to be included for calculations.
+
+    """
     fig, ax = plt.subplots(height_ratios = [0.1])
     ax.grid(True)
 
@@ -364,6 +265,28 @@ def image_handling(periods, res_num, used_data):
 
 
 def data_handling(data, chosen):
+    """
+    
+
+    Parameters
+    ----------
+    data : list
+        list of the six 10 seconds intervals datapoints.
+    chosen : list
+        list of which data intervals to be included in calculations.
+
+    Returns
+    -------
+    mean : float.
+        mean of the data maximas - minimas included.
+    std : float
+        std of the data maximas - minimas included.
+    maxs : list
+        list of the maxima points found for each 10 second interval.
+    mins : list
+        list of the minima points found for each 10 second interval.
+
+    """
     used_data = np.array([])
     maxs = []
     mins = []
