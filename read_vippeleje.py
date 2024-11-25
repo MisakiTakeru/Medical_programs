@@ -233,9 +233,9 @@ def make_labels(row):
         rest_start = float(marks[resp_slut_i][0]) + 60
     active_stand_i = get_mark_index('Active standing')
     if active_stand_i == None:
-        rest_slut = 99999999999
+        rest_slut = -99999999999
         active_stand_start = 99999999999
-        active_stand_slut = 99999999999
+        active_stand_slut = -99999999999
     else:
         rest_slut = float(marks[active_stand_i][0]) - 120
         
@@ -249,7 +249,7 @@ def make_labels(row):
     else:
         passivt_vip_start = float(marks[tilt_up_i][0]) - 30
     if tilt_down_i == None:
-        passivt_vip_slut = 99999999999
+        passivt_vip_slut = -99999999999
     else:
         passivt_vip_slut = float(marks[tilt_down_i][0]) + 60
     
