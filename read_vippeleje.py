@@ -227,17 +227,31 @@ def make_labels(row):
     # Starting code for labelling data.
 
     resp_slut_i = get_mark_index('resperation_slut')
-    rest_start = float(marks[resp_slut_i][0]) + 60
+    if resp_slut_i == None:
+        rest_start = 99999999999
+    else:
+        rest_start = float(marks[resp_slut_i][0]) + 60
     active_stand_i = get_mark_index('Active standing')
-    rest_slut = float(marks[active_stand_i][0]) - 120
+    if active_stand_i == None:
+        rest_slut = 99999999999
+        active_stand_start = 99999999999
+        active_stand_slut = 99999999999
+    else:
+        rest_slut = float(marks[active_stand_i][0]) - 120
         
-    active_stand_start = float(marks[active_stand_i][0]) - 30
-    active_stand_slut = float(marks[active_stand_i][0]) + 240
+        active_stand_start = float(marks[active_stand_i][0]) - 30
+        active_stand_slut = float(marks[active_stand_i][0]) + 240
     
     tilt_up_i = get_mark_index('Tilt up')
     tilt_down_i = get_mark_index('Tilt down')
-    passivt_vip_start = float(marks[tilt_up_i][0]) - 30
-    passivt_vip_slut = float(marks[tilt_down_i][0]) + 60
+    if tilt_up_i == None:
+        passivt_vip_start = 99999999999
+    else:
+        passivt_vip_start = float(marks[tilt_up_i][0]) - 30
+    if tilt_down_i == None:
+        passivt_vip_slut = 99999999999
+    else:
+        passivt_vip_slut = float(marks[tilt_down_i][0]) + 60
     
     carotis_i, l = get_mark_index('Carotis')
     
@@ -561,7 +575,6 @@ if __name__ == '__main__':
 # resperation and respitation keep it as is. I need to create
 # a new Label 'Rest' from 60 sec after last resp to 120 sec before Active Standing.
 # Active standing needs to be 30 seconds before until 240 seconds after start.
-#slet dette: Active standing done, cut the first 120 sec and last 120 sec.
 # If Carotis is done, then first 10 seconds before, and the first 40 seconds after marker for all Carotis.
 # passivt vip - [ ( Tilt_up - 30) : ( Tilt_down + 60 ) ]
 
