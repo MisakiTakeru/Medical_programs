@@ -551,6 +551,7 @@ if __name__ == '__main__':
                 new_name = new_name[0] + '_' + number[0]
             
         marks[ind][1] = new_name
+        mark_names[ind] = new_name
         vlines[ind][1].set_text(new_name)
 
         
