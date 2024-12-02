@@ -13,6 +13,7 @@ import pandas as pd
 from scipy.fft import fft, fftfreq
 from scipy.signal import find_peaks
 import matplotlib.patches as patches
+from matplotlib.widgets import CheckButtons
 
 def read_examination(date, pid, resp_nr):
     """
@@ -74,6 +75,12 @@ def fit_resp(exam, data_type):
 
     time = exam['Time'].values
 
+    nan_indices = np.argwhere(np.isnan(hr))
+    
+    if np.size(nan_indices) != 0:
+        for ind in -np.sort(-nan_indices[0]):
+            hr = np.delete(hr, ind)
+            time = np.delete(time, ind)
 
     ff = fftfreq(len(time), (time[1] - time[0]))
 
@@ -102,6 +109,9 @@ def fit_resp(exam, data_type):
 
 #    print([A_guess, B_guess_fft, h_guess, v_guess])
 # setting maxfev (max function evaluations) up to 10000 since I have hit situations where it failed since it took more than 1000 steps.
+    print('testting here:')
+    print(len(time), len(hr))
+    print(time, hr, A_guess, B_guess_fft, h_guess, v_guess)
     param, p_cov = curve_fit(sine, time, hr, p0 = [A_guess, B_guess_fft, h_guess, v_guess], maxfev = 10000)
     return param, p_cov, time, hr
 
@@ -307,8 +317,8 @@ def data_handling(data, chosen):
     
 if __name__ == '__main__':
 
-    date = '2019-06-13'
-    pid = '020698-0931'
+    date = '2020-02-26'
+    pid = '010288-1621'
     
     resp_datas, resp_times = read_examination(date, pid, 0)
     for i in range(3):
