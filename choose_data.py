@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Updated on Wed Oct  9 2024
+Updated on 13/1 2025
 
 @author: Joachim Normann Larsen
 """
@@ -31,14 +31,70 @@ def read_examination(date, pid, exam, ex_time_after = 0):
         tuple of the time markers for respiration [(resp_start, resp_slut)].
 
     """
-    data = pd.read_csv('/home/jlar0426/Documents/csv/test.csv')
+
+# all of the marker names and their datatypes. Used to reduce the memory
+# usage when loading with pandas.
+    dtype_dict = {'Time': 'float64', 'Beat': 'float64', 'RRI': 'float64',
+     'HR': 'float64', 'sBP': 'float64', 'dBP': 'float64', 'mBP': 'float64',
+     'SV': 'float64', 'SI': 'float64', 'CO': 'float64', 'CI': 'float64',
+     'TPR': 'float64', 'TPRI': 'float64', 'LFnu-dBP': 'float64',
+     'HFnu-dBP': 'float64', 'VLF-dBP': 'float64', 'LF-dBP': 'float64',
+     'HF-dBP': 'float64', 'PSD-dBP': 'float64', 'LF/HF-dBP': 'float64',
+     'LF/HF': 'float64', 'LFnu-RRI': 'float64', 'HFnu-RRI': 'float64',
+     'VLF-RRI': 'float64', 'LF-RRI': 'float64', 'HF-RRI': 'float64',
+     'PSD-RRI': 'float64', 'LF/HF-RRI': 'float64', 'Type': 'O',
+     'Idx': 'float64', 'Count': 'float64', 'RampUpCount': 'float64',
+     'RampDownCount': 'float64', 'Slope': 'float64', 'SlopeMean': 'float64',
+     'SlopeMeanUp': 'float64', 'SlopeMeanDown': 'float64', 'Offset': 'float64',
+     'SBP_y': 'O', 'DBP_y': 'float64', 'HR_y': 'O', 'Duration': 'O',
+     'date': 'O', 'ID': 'O', 'Label': 'O', 'Markers': 'O'}
+
+    data = pd.read_csv('/home/jlar0426/Documents/csv/test.csv', dtype = dtype_dict)
     markers = pd.read_csv('/home/jlar0426/Documents/csv/marks.csv')
     
 # Gets data from specific date and id 
     did = data.loc[(data['date'] == date) & (data['ID'] == pid)]
     mid = markers.loc[(markers['date'] == date) & (markers['ID'] == pid)]
 
-    mark_data = mid[mid['Mark'].str.contains(exam)]
+    names, counts = np.unique(mid.Mark, return_counts = True)
+    
+    stop_loc = np.where(names == 'Stop Recording')
+
+# Checks if part is including more than one experiment (only works for 2 as I 
+# assume there is a maximum of 2 experiments.), changes the second experiments
+# time to ensure that they do not overlap.
+    if counts[stop_loc[0][0]] > 1:
+        for i in range(len(did)-1):
+            c_time = did.iloc[i].Time
+            if c_time > did.iloc[i+1].Time:
+                split = i+1
+                time_add = c_time
+                break
+        start_add = np.where(mid.Mark == 'Stop Recording')[0][0] + 1
+        
+        for i in range(start_add, len(mid)):
+            mid.at[i,'Time'] += time_add
+        for i in range(split, len(did)):
+            did.at[i,'Time'] += time_add
+            
+    try:
+        if exam == 'Active standing':
+            m1 = mid.loc[mid['Mark'] == 'Active standing']
+            m2 = mid.loc[mid['Mark'] == 'Active standing - done']
+            
+            if m1.empty or m2.empty:
+                raise Exception('Missing either Active standing or Active standing - done marker')
+
+        elif exam == 'Tilt':
+            m1 = mid.loc[mid['Mark'] == 'Tilt up']
+            m2 = mid.loc[mid['Mark'] == 'Tilt down']            
+
+            if m1.empty or m2.empty:
+                raise Exception('Missing either Tilt up or Tilt down marker')
+    except:
+        raise Exception('Missing a crucial mark')
+
+    mark_data = pd.concat([m1, m2])    
     mark_data = mark_data.reset_index(drop = True)
     
     if mark_data.empty:
@@ -144,7 +200,8 @@ def find_min_max(data, mark_start, interval, calc = ['sBP', 'dBP', 'HR'],
 #    min_sBP = min(tdata['sBP'].values)
 #    min_dBP = min(tdata['dBP'].values)
 #    max_HR = max(tdata['HR'].values)
-    res = dict(zip(calc, res))
+    calc_names = list(map(lambda x, y : x +'_' + y, calc, minmax))
+    res = dict(zip(calc_names, res))
     return res
 
 def plot_data(exam_data, mark_data, rectangles, min_max = False, dtypes= [], funcs = []):
@@ -187,7 +244,13 @@ def plot_data(exam_data, mark_data, rectangles, min_max = False, dtypes= [], fun
 
     
 
-
+    sBP_mean_list = []
+    sBP_std_list = []
+    dBP_mean_list = []
+    dBP_std_list = []
+    hr_mean_list = []
+    hr_std_list = []
+    areas_list = []
 # loops through the rectangles and prints out the results
     for i in range(len(rects)):
         x = list(rects[i].get_area())
@@ -197,13 +260,25 @@ def plot_data(exam_data, mark_data, rectangles, min_max = False, dtypes= [], fun
 
         sBP_mean, sBP_std, dBP_mean, dBP_std, hr_mean, hr_std = calculate(exam_data, x0, x1)    
 
-        print('Rect ' + str(i) + ' sBP :')
-        print('mean: ', sBP_mean, ', std: ', sBP_std)
-        print('dBP :')
-        print('mean: ', dBP_mean, ', std: ', dBP_std)
-        print('HR :')
-        print('mean: ', hr_mean, ', std: ', hr_std)
-        print('interval: ', x0, x1)
+        sBP_mean_list.append(sBP_mean)
+        sBP_std_list.append(sBP_std)
+        dBP_mean_list.append(dBP_mean)
+        dBP_std_list.append(dBP_std)
+        hr_mean_list.append(hr_mean)
+        hr_std_list.append(hr_std)
+        areas_list.append(x)
+
+    return (sBP_mean_list, sBP_std_list, dBP_mean_list, dBP_std_list, 
+            hr_mean_list, hr_std_list, areas_list)
+#        print('Rect ' + str(i) + ' sBP :')
+#        print('mean: ', sBP_mean, ', std: ', sBP_std)
+#        print('dBP :')
+#        print('mean: ', dBP_mean, ', std: ', dBP_std)
+#        print('HR :')
+#        print('mean: ', hr_mean, ', std: ', hr_std)
+#        print('interval: ', x0, x1)
+        
+    
 
 def create_dicts(marks, lengths, offsets, colours, dists):
     lm = len(marks)
@@ -230,21 +305,21 @@ def create_dicts(marks, lengths, offsets, colours, dists):
     
 if __name__ == '__main__':
 
-    date = '2019-06-13'
-    pid = '020698-0931'
+    date = '9/7/2021'
+    pid = '021206-5242'
 
 # Active standing test:    
-#    active_stand_rects = [{'mark' : 'Active standing', 'length' : 30, 
-#                           'offset' :180, 'colour' : 'lime', 'dist active' : 10},
-#                          {'mark' : 'Active standing', 'length' : 30, 
-#                           'offset' :-30, 'colour' : 'deepskyblue', 'dist active' : 10}]
+    active_stand_rects = [{'mark' : 'Active standing', 'length' : 30, 
+                           'offset' :180, 'colour' : 'lime', 'dist active' : 10},
+                          {'mark' : 'Active standing', 'length' : 30, 
+                           'offset' :-30, 'colour' : 'deepskyblue', 'dist active' : 10}]
     
-#    exam_data, mark_data = read_examination(date, pid, 'Active standing')
+    exam_data, mark_data = read_examination(date, pid, 'Active standing')
 
-#    plot_data(exam_data, mark_data, active_stand_rects)
-#    mark_start = mark_data.loc[mark_data['Mark'] == 'Active standing']['Time'].values[0]
-#    res = find_min_max(exam_data,mark_start, 15)
-#    print(res)
+    plot_data(exam_data, mark_data, active_stand_rects)
+    mark_start = mark_data.loc[mark_data['Mark'] == 'Active standing']['Time'].values[0]
+    res = find_min_max(exam_data,mark_start, 15)
+    print(res)
     
 # Tilt test:
     exam_data, mark_data = read_examination(date, pid, 'Tilt', 240)
@@ -258,13 +333,19 @@ if __name__ == '__main__':
                               ['deepskyblue', 'limegreen', 'c', 'darkorchid'], 
                               [30, 30, 30, 30])
 
-    plot_data(exam_data, mark_data, tilt_rects)
-
+    res = plot_data(exam_data, mark_data, tilt_rects)
+    print(res)
 # Carotis test:
 #    exam_data, mark_data = read_examination(date, pid, 'Carotis')
     
 #    print(exam_data, mark_data)
 
+#    carotis_rects = create_dicts(['Carotis Sin'], [30], [-40], ['deepskyblue'],
+#                                 [30])
+
+#    print(carotis_rects)
+#    mark_carrots =  mark_data.loc[mark_data['Mark'] == 'Carotis']['Time']
+#    for time in mark_carrots:
 #    mark_start =  mark_data.loc[mark_data['Mark'] == 'Carotis sin']['Time'].values[0]
-#    res = find_min_max(exam_data,mark_start, 45)
-#    print(res)
+#       res = find_min_max(exam_data,time, 45)
+#       print(res)
