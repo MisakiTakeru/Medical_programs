@@ -10,7 +10,7 @@ import os
 from pathlib import Path
 #matplotlib.use('TkAgg')
 """
-Updated on Mon Oct  7 2024
+Updated on 8/1 2025
 
 @author: Joachim Normann Larsen
 """
@@ -120,7 +120,10 @@ def assemble_data(name):
 # Not including the HR from OSC as it seems suspiciously off compared to actual
 # data from the other files. This will result in a HR_x and HR_y 
 # (OSC is a different measurement and shall be kept different as well as DBP and SBP)
-    B2B_BPV_HRV_BRS_OSC = pd.merge(B2B_BPV_HRV_BRS, OSC, on = 'Time', how = 'outer').sort_values('Time')
+    if OSC.empty:
+        B2B_BPV_HRV_BRS_OSC = B2B_BPV_HRV_BRS
+    else:
+        B2B_BPV_HRV_BRS_OSC = pd.merge(B2B_BPV_HRV_BRS, OSC, on = 'Time', how = 'outer').sort_values('Time')
     B2B_BPV_HRV_BRS_OSC = B2B_BPV_HRV_BRS_OSC.rename(columns = {'HR_x' : 'HR',
         'SBP' : 'SBP_y', 'DBP' : 'DBP_y'})
     B2B_BPV_HRV_BRS_OSC['date'] = date
@@ -226,19 +229,11 @@ def make_labels(row):
     
     # Starting code for labelling data.
 
-    resp_slut_i = get_mark_index('resperation_slut')
-    if resp_slut_i == None:
-        rest_start = 99999999999
-    else:
-        rest_start = float(marks[resp_slut_i][0]) + 60
     active_stand_i = get_mark_index('Active standing')
     if active_stand_i == None:
-        rest_slut = -99999999999
         active_stand_start = 99999999999
         active_stand_slut = -99999999999
     else:
-        rest_slut = float(marks[active_stand_i][0]) - 120
-        
         active_stand_start = float(marks[active_stand_i][0]) - 30
         active_stand_slut = float(marks[active_stand_i][0]) + 240
     
@@ -257,9 +252,7 @@ def make_labels(row):
     
     lambd = lambda car: (marks[carotis_i[car]][1], t < (float(marks[carotis_i[car]][0]) + 40) and (
         t > (float(marks[carotis_i[car]][0]) - 10)))
-    if t < rest_slut and t > rest_start:
-        return 'Rest'
-    elif t < active_stand_slut and t > active_stand_start:
+    if t < active_stand_slut and t > active_stand_start:
         return 'Active standing'
     elif t < passivt_vip_slut and t > passivt_vip_start:
         return 'Passivt vip'
@@ -322,7 +315,7 @@ if __name__ == '__main__':
         loc = np.where(names == n)[0][0]
 
         if counts[loc] > 1:
-            if expected_counts[n.replace(' ','').replace('-','')].value < name_add[loc]:
+            if expected_counts[n.replace(' ','').replace('-','').replace('.','')].value < name_add[loc]:
                 new_name = markeds[i] + '_too_many'
             else:
                 new_name = markeds[i] + '_' + str(name_add[loc])
