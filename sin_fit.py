@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Updated on Mon Nov 11 2024
+Updated on 13/1 2025
 
 @author: Joachim Normann Larsen
 """
@@ -33,20 +33,68 @@ def read_examination(date, pid, resp_nr):
         tuple of the time markers for respiration [(resp_start, resp_slut)].
 
     """
-    data = pd.read_csv('/home/jlar0426/Documents/csv/test.csv')
+
+# all of the marker names and their datatypes. Used to reduce the memory
+# usage when loading with pandas.
+    dtype_dict = {'Time': 'float64', 'Beat': 'float64', 'RRI': 'float64',
+     'HR': 'float64', 'sBP': 'float64', 'dBP': 'float64', 'mBP': 'float64',
+     'SV': 'float64', 'SI': 'float64', 'CO': 'float64', 'CI': 'float64',
+     'TPR': 'float64', 'TPRI': 'float64', 'LFnu-dBP': 'float64',
+     'HFnu-dBP': 'float64', 'VLF-dBP': 'float64', 'LF-dBP': 'float64',
+     'HF-dBP': 'float64', 'PSD-dBP': 'float64', 'LF/HF-dBP': 'float64',
+     'LF/HF': 'float64', 'LFnu-RRI': 'float64', 'HFnu-RRI': 'float64',
+     'VLF-RRI': 'float64', 'LF-RRI': 'float64', 'HF-RRI': 'float64',
+     'PSD-RRI': 'float64', 'LF/HF-RRI': 'float64', 'Type': 'O',
+     'Idx': 'float64', 'Count': 'float64', 'RampUpCount': 'float64',
+     'RampDownCount': 'float64', 'Slope': 'float64', 'SlopeMean': 'float64',
+     'SlopeMeanUp': 'float64', 'SlopeMeanDown': 'float64', 'Offset': 'float64',
+     'SBP_y': 'O', 'DBP_y': 'float64', 'HR_y': 'O', 'Duration': 'O',
+     'date': 'O', 'ID': 'O', 'Label': 'O', 'Markers': 'O'}
+
+    data = pd.read_csv('/home/jlar0426/Documents/csv/test.csv', dtype = dtype_dict)
     markers = pd.read_csv('/home/jlar0426/Documents/csv/marks.csv')
 
 # Gets data from specific date and id 
     did = data.loc[(data['date'] == date) & (data['ID'] == pid)]
     mid = markers.loc[(markers['date'] == date) & (markers['ID'] == pid)]
+    
+    names, counts = np.unique(mid.Mark, return_counts = True)
+    stop_loc = np.where(names == 'Stop Recording')
+
+# Checks if part is including more than one experiment (only works for 2 as I 
+# assume there is a maximum of 2 experiments.), changes the second experiments
+# time to ensure that they do not overlap.
+    if counts[stop_loc[0][0]] > 1:
+        for i in range(len(did)-1):
+            c_time = did.iloc[i].Time
+            if c_time > did.iloc[i+1].Time:
+                split = i+1
+                time_add = c_time
+                break
+        start_add = np.where(mid.Mark == 'Stop Recording')[0][0] + 1
+        
+        for i in range(start_add, len(mid)):
+            mid.at[i,'Time'] += time_add
+        for i in range(split, len(did)):
+            did.at[i,'Time'] += time_add
 
 # gets all markers that have resperation in its name
     resps = mid[mid['Mark'].str.contains('resperation')]
+    resps = resps.drop_duplicates()
     resps = resps.reset_index(drop = True)
+    
+    allowed_marks = ['_start_1', '_slut_1','_start_2', '_slut_2','_start_3', '_slut_3']
+    df = pd.DataFrame()
+    for am in allowed_marks:
+        tmp_df = resps.loc[resps['Mark'] == 'resperation' + am]
+    
+        df = pd.concat([df,tmp_df], ignore_index = True)
+    
+    
 # gets the data within the first resperation interval.
     resp_datas = []
     resp_times = []
-    for r in take_two(resps['Time'],2):
+    for r in take_two(df['Time'],2):
         resp_times.append(r)
         resp_data_i = resp_areas(r, did)
         resp_datas.append(resp_data_i)
@@ -78,7 +126,7 @@ def fit_resp(exam, data_type):
     nan_indices = np.argwhere(np.isnan(hr))
     
     if np.size(nan_indices) != 0:
-        for ind in -np.sort(-nan_indices[0]):
+        for ind in -np.sort(-nan_indices[:,0]):
             hr = np.delete(hr, ind)
             time = np.delete(time, ind)
 
@@ -109,9 +157,7 @@ def fit_resp(exam, data_type):
 
 #    print([A_guess, B_guess_fft, h_guess, v_guess])
 # setting maxfev (max function evaluations) up to 10000 since I have hit situations where it failed since it took more than 1000 steps.
-    print('testting here:')
-    print(len(time), len(hr))
-    print(time, hr, A_guess, B_guess_fft, h_guess, v_guess)
+
     param, p_cov = curve_fit(sine, time, hr, p0 = [A_guess, B_guess_fft, h_guess, v_guess], maxfev = 10000)
     return param, p_cov, time, hr
 
@@ -310,15 +356,14 @@ def data_handling(data, chosen):
         mins.append(minima)
     used_data = used_data * chosen
     used_data = [d for d in used_data if d != 0]
-    print(used_data)
     mean = np.mean(used_data)
     std = np.std(used_data)
     return mean, std, maxs, mins
     
 if __name__ == '__main__':
 
-    date = '2020-02-26'
-    pid = '010288-1621'
+    date = '9/7/2021'
+    pid = '021206-5242'
     
     resp_datas, resp_times = read_examination(date, pid, 0)
     for i in range(3):
