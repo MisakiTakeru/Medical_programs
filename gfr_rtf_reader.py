@@ -26,7 +26,8 @@ def get_data(lines):
 
     Returns
     -------
-    None.
+    all_data : list
+        list of all found data in the rtf file.
 
     """
     all_data = []

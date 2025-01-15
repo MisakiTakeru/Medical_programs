@@ -84,7 +84,7 @@ def append_to_csv(df):
         df.to_csv(save_to, mode='a', index=False, header=False)
     else:
         df.to_csv(save_to, mode='a', index=False)
-# TODO: in if True load csv, merge it and drop duplicates or check if df data exist in csv.
+
 # removes all duplicates of the csv and saves it (this is done by completely overwriting)
     csv = pd.read_csv(save_to, dtype = str)
     csv = csv.drop_duplicates(subset = ['Date','PID'], keep = 'last')
