@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Jan  3 09:11:04 2025
+Last updated: 27/1 2025
 
-@author: jlar0426
+@author: Joachim Larsen
 """
 
 import matplotlib
@@ -265,8 +265,7 @@ class GUIApp(tk.Frame):
         if val == '':
             return
         else:
-            index = [i for i,x in enumerate(self.exams_dates) if val == x][0]
-            data = self.exams[index]
+            data = self.exams[self.dropbox_2.current()]
 
             data_generator = create_gens(load_path)
             

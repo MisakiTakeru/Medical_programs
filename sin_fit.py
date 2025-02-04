@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Updated on 13/1 2025
+Updated on 3/2 2025
 
 @author: Joachim Normann Larsen
 """
@@ -15,7 +15,7 @@ from scipy.signal import find_peaks
 import matplotlib.patches as patches
 from matplotlib.widgets import CheckButtons
 
-def read_examination(date, pid, resp_nr):
+def read_examination(date, pid, resp_nr, read_path):
     """
     
     Parameters
@@ -51,12 +51,15 @@ def read_examination(date, pid, resp_nr):
      'SBP_y': 'O', 'DBP_y': 'float64', 'HR_y': 'O', 'Duration': 'O',
      'date': 'O', 'ID': 'O', 'Label': 'O', 'Markers': 'O'}
 
-    data = pd.read_csv('/home/jlar0426/Documents/csv/test.csv', dtype = dtype_dict)
-    markers = pd.read_csv('/home/jlar0426/Documents/csv/marks.csv')
+    dtype_marker = {'Time' : 'float64', 'Mark' : 'O', 'date' : 'O', 'ID' : 'O'}
+
+    data = pd.read_csv(read_path + '/test.csv', dtype = dtype_dict)
+    markers = pd.read_csv(read_path + '/marks.csv', dtype = dtype_marker)
+
 
 # Gets data from specific date and id 
-    did = data.loc[(data['date'] == date) & (data['ID'] == pid)]
-    mid = markers.loc[(markers['date'] == date) & (markers['ID'] == pid)]
+    did = data.loc[(data['date'] == date) & (data['ID'] == pid)].reset_index(drop = True)
+    mid = markers.loc[(markers['date'] == date) & (markers['ID'] == pid)].reset_index(drop = True)
     
     names, counts = np.unique(mid.Mark, return_counts = True)
     stop_loc = np.where(names == 'Stop Recording')
@@ -135,11 +138,10 @@ def fit_resp(exam, data_type):
     Fyy = abs(fft(hr))
 
 # Finds frequency based on the peak frequency of the frequency space (fourier transformation)
-    B_guess_fft = 2*np.pi*abs(ff[np.argmax(Fyy[1:])+1])
+#    B_guess_fft = 2*np.pi*abs(ff[np.argmax(Fyy[1:])+1])
 # Finds frequency based on knwoledge that there will be 6 minima and maximas over the duration
 #    B_guess = (2*np.pi)/((resps['Time'][resp_nr+1]-resps['Time'][resp_nr])/6)
-
- #   print(B_guess_fft, B_guess)
+    B_guess_fft = (2*np.pi)/(time[-1] - time[0])
 
 # Finds the positions of the maximas and minimas
     maximas, _ = find_peaks(hr)
@@ -155,7 +157,6 @@ def fit_resp(exam, data_type):
 # vertical shift uses mean of the dataset as it is the indicator of the mid point of the sinus curve when np.sin() == 0
     v_guess = np.mean(hr)
 
-#    print([A_guess, B_guess_fft, h_guess, v_guess])
 # setting maxfev (max function evaluations) up to 10000 since I have hit situations where it failed since it took more than 1000 steps.
 
     param, p_cov = curve_fit(sine, time, hr, p0 = [A_guess, B_guess_fft, h_guess, v_guess], maxfev = 10000)
@@ -347,7 +348,6 @@ def data_handling(data, chosen):
     maxs = []
     mins = []
     for i in range(len(chosen)):
-#        d = data[i] * chosen[i]
         d = data[i]
         maxima = max(d)
         minima = min(d)
@@ -360,29 +360,3 @@ def data_handling(data, chosen):
     std = np.std(used_data)
     return mean, std, maxs, mins
     
-if __name__ == '__main__':
-
-    date = '9/7/2021'
-    pid = '021206-5242'
-    
-    resp_datas, resp_times = read_examination(date, pid, 0)
-    for i in range(3):
-#        param, p_cov, time, hr = fit_resp(resp_datas[i])
-        hr, sBP, dBP, hr_fit, sBP_fit, dBP_fit = ten_period_resps(resp_datas[i], resp_times[i], i)
-        print('respiration ' + str(i+1))
-        print('hr')
-        print(hr)
-        print('hr fit')
-        print(hr_fit)
-        print('sBP')
-        print(sBP)
-        print('sBP fit')
-        print(sBP_fit)
-        print('dBP')
-        print(dBP)
-        print('dBP fit')
-        print(dBP_fit)
-
-
-    t = patches.Rectangle((700,60), 20, 20, fill = False)
-    rect = patches.Rectangle((650,60), 20, 20, fill = False)

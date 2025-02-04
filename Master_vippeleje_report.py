@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Last updated: 14/1 2025
+Last updated: 30/1 2025
 
 @author: Joachim Larsen
 """
@@ -15,8 +15,13 @@ import choose_data
 import os
 import numpy as np
 
+read_path = '/home/jlar0426/Documents/csv'
+
 # Location the data is saved to.
 save_path = '/home/jlar0426/Documents/csv/vip_fin.csv'
+
+# Location from which database data is read from
+read_from = read_path + '/vipexam.csv'
 
 # The column order of which the data is saved in.
 columns = ['resperation_hr_mean', 'resperation_hr_std', 'resperation_hr_maxs',
@@ -194,7 +199,7 @@ class GUIApp(tk.Frame):
         
         self.option_value = tk.StringVar(self)
 
-        self.drop_values = list(np.unique(df.apply(lambda row : row.iloc[0] + ',' + row.iloc[1], axis = 1)))
+        self.drop_values = list(np.unique(df.apply(lambda row : str(row.iloc[0]) + ',' + str(row.iloc[1]), axis = 1)))
 
         self.dropbox = ttk.Combobox(
             parent,
@@ -367,11 +372,13 @@ class GUIApp(tk.Frame):
 
         
         if os.path.isfile(save_path):
-            ori_df = pd.read_csv(save_path)
-                                    
-            new_df = ori_df[(ori_df['ID'] != pid) & (ori_df['date'] != date)]
-            
-            new_df = pd.concat([new_df, df])
+            ori_df = pd.read_csv(save_path, dtype = 'O')
+
+            del_df = ori_df[(ori_df['ID'] == pid) & (ori_df['date'] == date)]
+
+            if not del_df.empty:
+                ori_df = ori_df.drop(del_df.index.values)
+            new_df = pd.concat([ori_df, df])
             
             new_df.to_csv(save_path, mode='w', index=False)
         else:
@@ -510,7 +517,7 @@ class GUIApp(tk.Frame):
                 ['lime','deepskyblue'],
                 [10, 10])
     
-            exam_data, mark_data = choose_data.read_examination(date, pid, 'Active standing')
+            exam_data, mark_data = choose_data.read_examination(date, pid, 'Active standing', read_path)
 
             (sBP_mean_list, sBP_std_list, dBP_mean_list, dBP_std_list, 
                     hr_mean_list, hr_std_list, areas_list) = choose_data.plot_data(exam_data, mark_data, active_stand_rects)
@@ -526,7 +533,7 @@ class GUIApp(tk.Frame):
             self.active_sBP1.config(text = round_lists(sBP_std_list))
 
         elif choice == 'Tilt':
-            exam_data, mark_data = choose_data.read_examination(date, pid, 'Tilt', 240)
+            exam_data, mark_data = choose_data.read_examination(date, pid, 'Tilt', read_path, 240)
         
             one_fourth = (mark_data['Time'][1] - mark_data['Time'][0])/4
 
@@ -568,8 +575,12 @@ class GUIApp(tk.Frame):
         except:
             print('information in the dropdown menu is either incorrect or has been corrupted')
             return
+        
+        resp_datas, resp_times = sin_fit.read_examination(date, pid, 0, read_path)
 
-        resp_datas, resp_times = sin_fit.read_examination(date, pid, 0)
+        if resp_datas == []:
+            print('There have been found no proper resperation datas')
+            return
 
         hr_list = []
         sBP_list = []
@@ -665,7 +676,7 @@ if __name__ == '__main__':
     window = tk.Tk()
 
 # The database read from.    
-    df = pd.read_csv('/home/jlar0426/Documents/csv/vipexam.csv')
+    df = pd.read_csv(read_from)
     
     gui = GUIApp(window, vdata, df)
 

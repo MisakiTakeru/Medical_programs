@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Updated on 13/1 2025
+Updated on 3/2 2025
 
 @author: Joachim Normann Larsen
 """
@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from stretch_rect import stretch_rect
 from matplotlib.patches import Rectangle
 
-def read_examination(date, pid, exam, ex_time_after = 0):
+def read_examination(date, pid, exam, read_path, ex_time_after = 0):
     """
     
     Parameters
@@ -49,12 +49,15 @@ def read_examination(date, pid, exam, ex_time_after = 0):
      'SBP_y': 'O', 'DBP_y': 'float64', 'HR_y': 'O', 'Duration': 'O',
      'date': 'O', 'ID': 'O', 'Label': 'O', 'Markers': 'O'}
 
-    data = pd.read_csv('/home/jlar0426/Documents/csv/test.csv', dtype = dtype_dict)
-    markers = pd.read_csv('/home/jlar0426/Documents/csv/marks.csv')
+    dtype_marker = {'Time' : 'float64', 'Mark' : 'O', 'date' : 'O', 'ID' : 'O'}
+
+
+    data = pd.read_csv( read_path + '/test.csv', dtype = dtype_dict)
+    markers = pd.read_csv(read_path + '/marks.csv', dtype = dtype_marker)
     
 # Gets data from specific date and id 
-    did = data.loc[(data['date'] == date) & (data['ID'] == pid)]
-    mid = markers.loc[(markers['date'] == date) & (markers['ID'] == pid)]
+    did = data.loc[(data['date'] == date) & (data['ID'] == pid)].reset_index(drop = True)
+    mid = markers.loc[(markers['date'] == date) & (markers['ID'] == pid)].reset_index(drop = True)
 
     names, counts = np.unique(mid.Mark, return_counts = True)
     
@@ -187,8 +190,6 @@ def find_min_max(data, mark_start, interval, calc = ['sBP', 'dBP', 'HR'],
         print('length of types to use and length of which to gather are different')
         return
     
-    # Active stand find within first 15 seconds
-    # Carotis find within first 45 seconds.    
     tdata = data.loc[(data['Time'] >= mark_start) & 
                           (data['Time'] <= (mark_start + interval))] 
     
@@ -197,9 +198,6 @@ def find_min_max(data, mark_start, interval, calc = ['sBP', 'dBP', 'HR'],
         mm = eval(minmax[i])(tdata[calc[i]].values)
         res.append(mm)
             
-#    min_sBP = min(tdata['sBP'].values)
-#    min_dBP = min(tdata['dBP'].values)
-#    max_HR = max(tdata['HR'].values)
     calc_names = list(map(lambda x, y : x +'_' + y, calc, minmax))
     res = dict(zip(calc_names, res))
     return res
@@ -236,6 +234,14 @@ def plot_data(exam_data, mark_data, rectangles, min_max = False, dtypes= [], fun
                                       dist_interact=d['dist active'])
         rects.append(inter)
 
+# Creates vlines for all of the markers (even if unused, vlines info need to be saved somewhere otherwise it will not show).
+    def vlines(row):
+        time = row['Time']
+        vline = ax.vlines(time, 0, height_start + 5, colors = 'r', linestyles = '--')
+        vtext = ax.text(time, height_start + 5, row['Mark'], rotation = 20)
+
+    mark_data.apply(vlines, axis = 1)
+
 
     ax.grid(True)
     plt.title('Drag and stretch the line along the x-axis for data to include. Left mouse click to stretch, right mouse click to drag')
@@ -270,14 +276,6 @@ def plot_data(exam_data, mark_data, rectangles, min_max = False, dtypes= [], fun
 
     return (sBP_mean_list, sBP_std_list, dBP_mean_list, dBP_std_list, 
             hr_mean_list, hr_std_list, areas_list)
-#        print('Rect ' + str(i) + ' sBP :')
-#        print('mean: ', sBP_mean, ', std: ', sBP_std)
-#        print('dBP :')
-#        print('mean: ', dBP_mean, ', std: ', dBP_std)
-#        print('HR :')
-#        print('mean: ', hr_mean, ', std: ', hr_std)
-#        print('interval: ', x0, x1)
-        
     
 
 def create_dicts(marks, lengths, offsets, colours, dists):
@@ -303,49 +301,3 @@ def create_dicts(marks, lengths, offsets, colours, dists):
     
     return res
     
-if __name__ == '__main__':
-
-    date = '9/7/2021'
-    pid = '021206-5242'
-
-# Active standing test:    
-    active_stand_rects = [{'mark' : 'Active standing', 'length' : 30, 
-                           'offset' :180, 'colour' : 'lime', 'dist active' : 10},
-                          {'mark' : 'Active standing', 'length' : 30, 
-                           'offset' :-30, 'colour' : 'deepskyblue', 'dist active' : 10}]
-    
-    exam_data, mark_data = read_examination(date, pid, 'Active standing')
-
-    plot_data(exam_data, mark_data, active_stand_rects)
-    mark_start = mark_data.loc[mark_data['Mark'] == 'Active standing']['Time'].values[0]
-    res = find_min_max(exam_data,mark_start, 15)
-    print(res)
-    
-# Tilt test:
-    exam_data, mark_data = read_examination(date, pid, 'Tilt', 240)
-    
-    one_fourth = (mark_data['Time'][1] - mark_data['Time'][0])/4
-
-# extra rectangle for after tilt down  x<  
-    tilt_rects = create_dicts(['Tilt up', 'Tilt up', 'Tilt down', 'Tilt down'],
-                              [30, 30, 30, 30], 
-                              [-40, one_fourth, -one_fourth, 40], 
-                              ['deepskyblue', 'limegreen', 'c', 'darkorchid'], 
-                              [30, 30, 30, 30])
-
-    res = plot_data(exam_data, mark_data, tilt_rects)
-    print(res)
-# Carotis test:
-#    exam_data, mark_data = read_examination(date, pid, 'Carotis')
-    
-#    print(exam_data, mark_data)
-
-#    carotis_rects = create_dicts(['Carotis Sin'], [30], [-40], ['deepskyblue'],
-#                                 [30])
-
-#    print(carotis_rects)
-#    mark_carrots =  mark_data.loc[mark_data['Mark'] == 'Carotis']['Time']
-#    for time in mark_carrots:
-#    mark_start =  mark_data.loc[mark_data['Mark'] == 'Carotis sin']['Time'].values[0]
-#       res = find_min_max(exam_data,time, 45)
-#       print(res)

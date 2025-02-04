@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Jan 27 09:38:31 2025
+Last updated: 27/1 2025
 
-@author: jlar0426
+@author: Joachim Larsen
 """
 
 import matplotlib

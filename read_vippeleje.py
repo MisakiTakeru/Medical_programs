@@ -15,6 +15,7 @@ Updated on 8/1 2025
 @author: Joachim Normann Larsen
 """
 
+save_path = '/home/jlar0426/Documents/csv/'
 
 # In case of this program not opening a new window, but instead tries to 
 # show it in IDE run this line in console: %matplotlib qt
@@ -121,9 +122,9 @@ def assemble_data(name):
 # data from the other files. This will result in a HR_x and HR_y 
 # (OSC is a different measurement and shall be kept different as well as DBP and SBP)
     if OSC.empty:
-        B2B_BPV_HRV_BRS_OSC = B2B_BPV_HRV_BRS
-    else:
-        B2B_BPV_HRV_BRS_OSC = pd.merge(B2B_BPV_HRV_BRS, OSC, on = 'Time', how = 'outer').sort_values('Time')
+        OSC = pd.DataFrame([], columns = ['Time', 'SBP', 'DBP', 'HR', 'Duration'])
+
+    B2B_BPV_HRV_BRS_OSC = pd.merge(B2B_BPV_HRV_BRS, OSC, on = 'Time', how = 'outer').sort_values('Time')
     B2B_BPV_HRV_BRS_OSC = B2B_BPV_HRV_BRS_OSC.rename(columns = {'HR_x' : 'HR',
         'SBP' : 'SBP_y', 'DBP' : 'DBP_y'})
     B2B_BPV_HRV_BRS_OSC['date'] = date
@@ -472,26 +473,26 @@ if __name__ == '__main__':
         print(res_with_marks)
 
 # slutdataene af al dataene.
-        if os.path.isfile('/home/jlar0426/Documents/csv/test.csv'):
-            res_with_marks.to_csv('/home/jlar0426/Documents/csv/test.csv', mode='a', index=False, header=False)
+        if os.path.isfile(save_path + 'test.csv'):
+            res_with_marks.to_csv(save_path + 'test.csv', mode='a', index=False, header=False)
         else:
-            res_with_marks.to_csv('/home/jlar0426/Documents/csv/test.csv', mode='a', index=False)
+            res_with_marks.to_csv(save_path + 'test.csv', mode='a', index=False)
         mark_df = pd.DataFrame(marks, columns = ['Time', 'Mark'])
         mark_df['date'] = res['date'][0]
         mark_df['ID'] = res['ID'][0]
 # markeringerne lavet af examinatorerne, og de ændringer der er blevet lavet til dem.
-        if os.path.isfile('/home/jlar0426/Documents/csv/marks.csv'):
-            mark_df.to_csv('/home/jlar0426/Documents/csv/marks.csv', mode='a', index=False, header=False)
+        if os.path.isfile(save_path + 'marks.csv'):
+            mark_df.to_csv(save_path + 'marks.csv', mode='a', index=False, header=False)
         else:
-            mark_df.to_csv('/home/jlar0426/Documents/csv/marks.csv', mode='a', index=False)
+            mark_df.to_csv(save_path + 'marks.csv', mode='a', index=False)
         test = {'date' : [res['date'][0]], 'ID' : [res['ID'][0]]}
         exam = pd.DataFrame.from_dict(test)
 
 # Not Yet Implemented: ment til at blive brugt til at checke om der er allerede blevet gennemkørt dataene før.
-        if os.path.isfile('/home/jlar0426/Documents/csv/vipexam.csv'):
-            exam.to_csv('/home/jlar0426/Documents/csv/vipexam.csv', mode='a', index=False, header=False)
+        if os.path.isfile(save_path + 'vipexam.csv'):
+            exam.to_csv(save_path + 'vipexam.csv', mode='a', index=False, header=False)
         else:
-            exam.to_csv('/home/jlar0426/Documents/csv/vipexam.csv', mode='a', index=False)        
+            exam.to_csv(save_path + 'vipexam.csv', mode='a', index=False)        
         plt.close()
         return 
 
